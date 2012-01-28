@@ -7,7 +7,8 @@ require "net-ftw" # gem net-ftw
 
 client = Net::FTW::HTTP::Client.new
 #uri = Addressable::URI.parse("http://httpbin.org/ip")
-uri = Addressable::URI.parse("http://google.com/")
+#uri = Addressable::URI.parse("http://google.com/")
+uri = Addressable::URI.parse("http://twitter.com/")
 
 # 'client.get' is not the end of this api. still in progress.
 client.get(uri)

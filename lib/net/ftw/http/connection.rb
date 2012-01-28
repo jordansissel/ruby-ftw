@@ -16,23 +16,23 @@ class Net::FTW::HTTP::Connection < Net::FTW::Connection
     parser = HTTP::Parser.new
 
     # Only parse the header of the response
-    parser.on_headers_complete = proc { :stop }
-
     state = :headers
+    parser.on_headers_complete = proc { state = :body; :stop }
+
+    save = File.open("/tmp/x", "w")
     on(DATA) do |data|
       # TODO(sissel): Implement this better. Should be able to swap out the
       # DATA handler at run-time
+      save.write(data)
+      save.flush
       if state == :headers
         offset = parser << data
-        if offset == data.length
-          # All bytes from this data chunk were consumed, still parsing the headers.
-        else
+        if state == :body
           # headers done parsing.
           version = "#{parser.http_major}.#{parser.http_minor}".to_f
           trigger(HEADERS_COMPLETE, version, parser.status_code, parser.headers)
 
           # Re-call 'data' with the remaining non-header portion of data.
-          state = :body
           trigger(DATA, data[offset..-1])
         end
       else

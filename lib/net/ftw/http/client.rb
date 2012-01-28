@@ -53,11 +53,12 @@ class Net::FTW::HTTP::Client
         length = response.headers.get("Content-Length").to_i
         connection.on(connection.class::MESSAGE_BODY) do |data|
           length -= data.size
-          $stdout.write data
+          #$stdout.write data
           if length <= 0
             if response.headers.get("Connection") == "close"
               connection.disconnect
             else
+              p :response_complete => response.headers.get("Content-Length")
               # TODO(sissel): This connection is now ready for another HTTP
               # request.
             end
@@ -76,10 +77,11 @@ class Net::FTW::HTTP::Client
         end
       elsif response.version == 1.1
         # No content-length nor transfer-encoding. If this is HTTP/1.1, this is
-        # an error.
+        # an error, I think. I need to find the specific part of RFC2616 that
+        # specifies this.
         connection.disconnect("Invalid HTTP Response received. Response " \
           "version claimed 1.1 but no Content-Length nor Transfer-Encoding "\
-          "header was set in the response.", response)
+          "header was set in the response.")
       end
     end # connection.on HEADERS_COMPLETE
     connection.run

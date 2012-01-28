@@ -73,6 +73,7 @@ class Net::FTW::Connection
 
     on(CONNECTED) { |address| connected(address) }
     on(DISCONNECTED) { |reason, error| disconnected(reason, error) }
+    #on(READER_CLOSED) { @reader_closed = true }
 
     @connect_timeout = 2
     @read_size = 16384
@@ -194,6 +195,7 @@ class Net::FTW::Connection
   # End this connection
   def disconnect(reason=INTENTIONAL)
     begin 
+      #@reader_closed = true
       @socket.close_read
     rescue IOError => e
       # Ignore
@@ -224,6 +226,7 @@ class Net::FTW::Connection
   # The time out is in seconds. Fractional seconds are OK.
   public
   def readable?(timeout)
+    #return false if @reader_closed
     ready = IO.select([@socket], nil, nil, timeout)
     return !ready.nil?
   end # def readable?
@@ -254,8 +257,11 @@ class Net::FTW::Connection
     connect if not connected?
     while connected?
       data = read(@read_size)
-      p :__data => data
-      trigger(DATA, data)
+      if data.length == 0
+        disconnect(EOFError)
+      else
+        trigger(DATA, data)
+      end
     end
   end # def run
 end # class Net::FTW::Connection
