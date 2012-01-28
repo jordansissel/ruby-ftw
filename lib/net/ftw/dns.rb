@@ -7,6 +7,10 @@ require "socket"
 class Net::FTW::DNS
   V4_IN_V6_PREFIX = "0:" * 12
 
+  def self.singleton
+    @resolver ||= self.new
+  end # def self.singleton
+
   # This method is only intended to do A or AAAA lookups
   # I may add PTR lookups later.
   def resolve(hostname)
@@ -23,6 +27,11 @@ class Net::FTW::DNS
       end
     end
   end # def resolve
+
+  def resolve_random(hostname)
+    addresses = resolve(hostname)
+    return addresses[rand(addresses.size)]
+  end # def resolve_random
 
   private
   def unpack_v4(address)
