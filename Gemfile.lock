@@ -2,11 +2,21 @@ GEM
   remote: http://rubygems.org/
   specs:
     addressable (2.2.6)
+    backport-bij (1.0.1)
+    cabin (0.1.8)
+      json
     http_parser.rb (0.5.3)
+    http_parser.rb (0.5.3-java)
+    json (1.6.5)
+    json (1.6.5-java)
 
 PLATFORMS
+  java
   ruby
 
 DEPENDENCIES
   addressable (= 2.2.6)
+  backport-bij (= 1.0.1)
+  cabin (= 0.1.8)
   http_parser.rb (= 0.5.3)
+  json (= 1.6.5)
