@@ -4,6 +4,14 @@ require "net/ftw/crlf"
 # HTTP Headers
 #
 # See RFC2616 section 4.2: <http://tools.ietf.org/html/rfc2616#section-4.2>
+#
+# Section 14.44 says Field Names in the header are case-insensitive, so
+# this library always forces field names to be lowercase. This includes
+# get() calls.
+#
+#    headers.set("HELLO", "world")
+#    headers.get("hello")   # ===> "world"
+#
 class Net::FTW::HTTP::Headers
   include Enumerable
   include Net::FTW::CRLF
@@ -19,14 +27,21 @@ class Net::FTW::HTTP::Headers
   # Set a header field to a specific value.
   # Any existing value(s) for this field are destroyed.
   def set(field, value)
-    @headers[field] = value
+    @headers[field.downcase] = value
   end # def set
+
+  # Set a header field to a specific value.
+  # Any existing value(s) for this field are destroyed.
+  def include?(field)
+    @headers.include?(field.downcase)
+  end # def include?
 
   # Add a header field with a value.
   #
   # If this field already exists, another value is added.
   # If this field does not already exist, it is set.
   def add(field, value)
+    field = field.downcase
     if @headers.include?(field)
       if @headers[field].is_a?(Array)
         @headers[field] << value
@@ -50,6 +65,7 @@ class Net::FTW::HTTP::Headers
   # If you try to remove a field that doesn't exist, no error will occur.
   # If you try to remove a field value that doesn't exist, no error will occur.
   def remove(field, value=nil)
+    field = field.downcase
     if value.nil?
       @headers.delete(field)
     else
@@ -64,6 +80,7 @@ class Net::FTW::HTTP::Headers
   #   * String if there is only a single value for this field
   #   * Array of String if there are multiple values for this field
   def get(field)
+    field = field.downcase
     return @headers[field]
   end # def get
 

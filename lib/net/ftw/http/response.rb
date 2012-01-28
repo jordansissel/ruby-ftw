@@ -45,13 +45,14 @@ class Net::FTW::HTTP::Response < Net::FTW::HTTP::Message
 
   public
   def initialize
+    super
     @reason = "" # Empty reason string by default. It is not required.
   end # def initialize
 
   # Set the status code
   public
   def status=(code)
-    code = code.to_i if !code.is_a?(Fixed)
+    code = code.to_i if !code.is_a?(Fixnum)
     # TODO(sissel): Validate that 'code' is a 3 digit number
     @status = code
 
@@ -60,11 +61,12 @@ class Net::FTW::HTTP::Response < Net::FTW::HTTP::Message
     @reason = STATUS_REASON_MAP.fetch(@status, @reason)
   end # def status=
 
-  # Get the status-line string, like "HTTP-1.0 200 OK"
+  # Get the status-line string, like "HTTP/1.0 200 OK"
   public
   def status_line
-    # First line is 'Status-Line' from RFC2616
+    # First line is 'Status-Line' from RFC2616 section 6.1
     # Status-Line = HTTP-Version SP Status-Code SP Reason-Phrase CRLF
+    # etc...
     return "HTTP-#{version} #{status} #{reason}"
   end # def status_line
 

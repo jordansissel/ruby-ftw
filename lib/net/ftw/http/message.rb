@@ -9,6 +9,12 @@ class Net::FTW::HTTP::Message
   # RFC2616 5.3 - <http://tools.ietf.org/html/rfc2616#section-5.3>
   attr_reader :headers
 
+  # The HTTP version. See VALID_VERSIONS for valid versions.
+  # This will always be a Numeric object.
+  # Both Request and Responses have version, so put it in the parent class.
+  attr_accessor :version
+  VALID_VERSIONS = [1.0, 1.1]
+
   # A new HTTP Message. You probably won't use this class much. 
   # See RFC2616 section 4: <http://tools.ietf.org/html/rfc2616#section-4>
   # See Request and Response.
@@ -28,7 +34,7 @@ class Net::FTW::HTTP::Message
   def []=(header, value)
     @headers[header] = header
   end # def []=
-
+  
   # See RFC2616 section 4.3: <http://tools.ietf.org/html/rfc2616#section-4.3>
   public
   def body=(message_body)
@@ -51,10 +57,24 @@ class Net::FTW::HTTP::Message
     return @body
   end # def body
 
+  # Does this message have a message body?
   public
   def body?
     return @body.nil?
   end # def body?
+
+  # Set the HTTP version. Must be a valid version. See VALID_VERSIONS.
+  public
+  def version=(ver)
+    # Accept string "1.0" or simply "1", etc.
+    ver = ver.to_f if !ver.is_a?(Float)
+
+    if !VALID_VERSIONS.include?(ver)
+      raise ArgumentError.new("#{self.class.name}#version = #{ver.inspect} is" \
+        "invalid. It must be a number, one of #{VALID_VERSIONS.join(", ")}")
+    end
+    @version = ver
+  end # def version=
 
   # Serialize this Request according to RFC2616
   # Note: There is *NO* trailing CRLF. This is intentional.

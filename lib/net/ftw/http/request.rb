@@ -26,12 +26,6 @@ class Net::FTW::HTTP::Request < Net::FTW::HTTP::Message
   # Lemmings. Everyone else calls Request-URI the 'path' - so I should too.
   alias_method :path, :request_uri
 
-  # The HTTP version. See VALID_VERSIONS for valid versions.
-  # This will always be a Numeric object.
-  attr_accessor :version
-
-  VALID_VERSIONS = [1.0, 1.1]
-
   public
   def initialize(uri=nil)
     super()
@@ -57,19 +51,6 @@ class Net::FTW::HTTP::Request < Net::FTW::HTTP::Message
     # TODO(sissel): support authentication
   end # def use_uri
 
-  # Set the HTTP version. Must be a valid version. See VALID_VERSIONS.
-  public
-  def version=(ver)
-    # Accept string "1.0" or simply "1", etc.
-    ver = ver.to_f if !ver.is_a?(Float)
-
-    if !VALID_VERSIONS.include?(ver)
-      raise ArgumentError.new("#{self.class.name}#version = #{ver.inspect} is" \
-        "invalid. It must be a number, one of #{VALID_VERSIONS.join(", ")}")
-    end
-    @version = ver
-  end # def version=
-
   # Set the method for this request. Usually something like "GET" or "PUT"
   # etc. See <http://tools.ietf.org/html/rfc2616#section-5.1.1>
   public
@@ -93,7 +74,6 @@ class Net::FTW::HTTP::Request < Net::FTW::HTTP::Message
 
   # Define the Message's start_line as request_line
   alias_method :start_line, :request_line
-
   # TODO(sissel): Methods to write:
   # 1. Parsing a request, use HTTP::Parser from http_parser.rb
   # 2. Building a request from a URI or Addressable::URI

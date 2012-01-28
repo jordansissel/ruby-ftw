@@ -1,6 +1,7 @@
-require "net/ftw/namespace"
+require "net/ftw/http/connection"
 require "net/ftw/http/request"
 require "net/ftw/http/response"
+require "net/ftw/namespace"
 require "socket" # ruby stdlib
 
 # TODO(sissel): Split this out into a general 'client' class (outside http)
@@ -9,6 +10,8 @@ require "socket" # ruby stdlib
 # A client should be like a web browser. It should support lots of active
 # connections.
 class Net::FTW::HTTP::Client
+  include Net::FTW::CRLF
+
   # Create a new HTTP client. You probably only need one of these.
   def initialize
     @connections = []
@@ -16,29 +19,69 @@ class Net::FTW::HTTP::Client
   
   # TODO(sissel): This method may not stay. I dunno yet.
   public
-  def get(uri, &block)
-    start("GET", uri, &block)
+  def get(uri)
+    prepare("GET", uri)
   end # def get
 
   public
-  def start(method, uri, &block)
-    if !block_given?
-      raise ArgumentError.new("No block given to #{self.class.name}#start" \
-        "(#{method.inspect}, #{uri.inspect}")
-    end
+  def prepare(method, uri)
+    #if !block_given?
+      #raise ArgumentError.new("No block given to #{self.class.name}#start" \
+        #"(#{method.inspect}, #{uri.inspect}")
+    #end
     uri = Addressable::URI.parse(uri.to_s) if uri.is_a?(URI)
+    uri.port ||= 80
 
-    req = Net::FTW::HTTP::Request.new(uri)
-    resp = Net::FTW::HTTP::Response.new
+    request = Net::FTW::HTTP::Request.new(uri)
+    response = Net::FTW::HTTP::Response.new
+    request.method = method
+    request.version = 1.1
 
-    req.method = method
-    req.version = 1.1
+    connection = Net::FTW::HTTP::Connection.new("#{uri.host}:#{uri.port}")
+    connection.on(connection.class::CONNECTED) do |address|
+      connection.write(request.to_s)
+      connection.write(CRLF)
+    end
+    connection.on(connection.class::HEADERS_COMPLETE) do |version, status, headers|
+      response.status = status
+      response.version = version
+      headers.each { |field, value| response.headers.add(field, value) }
 
-    # TODO(sissel): Implement retries on certain failures like DNS, connect
-    # timeouts, or connection resets?
-    # TODO(sissel): use HTTPS if the uri.scheme == "https"
-    # TODO(sissel): Resolve the hostname
-    # TODO(sissel): Start a new connection, or reuse an existing one.
-    block.call(req, resp)
-  end # def start
+      # TODO(sissel): Split these BODY handlers into separate body-handling
+      # classes.
+      if response.headers.include?("Content-Length")
+        length = response.headers.get("Content-Length").to_i
+        connection.on(connection.class::MESSAGE_BODY) do |data|
+          length -= data.size
+          $stdout.write data
+          if length <= 0
+            if response.headers.get("Connection") == "close"
+              connection.disconnect
+            else
+              # TODO(sissel): This connection is now ready for another HTTP
+              # request.
+            end
+
+            # TODO(sissel): What to do with the extra bytes?
+            if length < 0
+              # Length is negative, will be offset on end of data string
+              $stderr.puts :TOOMANYBYTES => data[length .. -1]
+            end
+          end
+        end 
+      elsif response.headers.get("Transfer-Encoding") == "chunked"
+        connection.on(connection.class::MESSAGE_BODY) do |data|
+          # TODO(sissel): Handle chunked encoding
+          p :chunked => data
+        end
+      elsif response.version == 1.1
+        # No content-length nor transfer-encoding. If this is HTTP/1.1, this is
+        # an error.
+        connection.disconnect("Invalid HTTP Response received. Response " \
+          "version claimed 1.1 but no Content-Length nor Transfer-Encoding "\
+          "header was set in the response.", response)
+      end
+    end # connection.on HEADERS_COMPLETE
+    connection.run
+  end # def prepare
 end # class Net::FTW::HTTP::Client
