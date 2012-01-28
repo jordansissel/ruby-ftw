@@ -4,6 +4,7 @@ require "net/ftw/dns"
 require "net/ftw/namespace"
 require "socket"
 require "timeout" # ruby stdlib, just for the Timeout exception.
+require "backport-bij" # for Array#rotate, IO::WaitWritable, etc, in ruby < 1.9
 
 # TODO(sissel): What's the API look like here?
 # EventMachine::Connection has these:
@@ -81,7 +82,11 @@ class Net::FTW::Connection
     # Use a fixed-size string that we set to BINARY encoding.
     # Not all byte sequences are UTF-8 friendly :0
     @read_buffer = " " * @read_size
-    @read_buffer.force_encoding("BINARY")
+
+    # Tell Ruby 1.9 that this string is a binary string, not utf-8 or somesuch.
+    if @read_buffer.respond_to?(:force_encoding)
+      @read_buffer.force_encoding("BINARY")
+    end
 
     # TODO(sissel): Validate @destinations
   end # def initialize
