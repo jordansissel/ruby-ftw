@@ -1,0 +1,8 @@
+.*.swp
+*.gem
+*.class
+*.tar.gz
+*.jar
+.bundle
+build
+.sass-cache
