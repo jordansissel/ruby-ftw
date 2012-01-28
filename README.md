@@ -15,10 +15,11 @@ I want:
 ## DONE
 
 * TCP connection 
-* DNS resolution with random address selection
+* DNS resolution (wraps Socket.gethostname)
 * HTTP client partially done
 
 ## TODO
 
 * Tests, yo.
 * Logging, yo. With cabin, obviously.
+* [DNS in Ruby stdlib is broken](https://github.com/jordansissel/experiments/tree/master/ruby/dns-resolving-bug), I need to write my own
