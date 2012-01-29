@@ -62,15 +62,30 @@ class Net::FTW::HTTP::Headers
   #     # Remove a specific X-Forwarded-For entry
   #     headers.remove("X-Forwarded-For", "1.2.3.4")
   #
-  # If you try to remove a field that doesn't exist, no error will occur.
-  # If you try to remove a field value that doesn't exist, no error will occur.
+  # * If you remove a field that doesn't exist, no error will occur.
+  # * If you remove a field value that doesn't exist, no error will occur.
+  # * If you remove a field value that is the only value, it is the same as
+  #   removing that field by name.
   def remove(field, value=nil)
     field = field.downcase
     if value.nil?
+      # no value, given, remove the entire field.
       @headers.delete(field)
     else
-      # remove a specific value
-      @headers[field].delete(value)
+      field_value = @headers[field]
+      if field_value.is_a?(Array)
+        # remove a specific value
+        field_value.delete(value)
+        # Down to a String again if there's only one value.
+        if field_value.size == 1
+          set(field, field_value.first)
+        end
+      else
+        # Remove this field if the value matches
+        if field_value == value
+          remove(field)
+        end
+      end
     end
   end # def remove
 

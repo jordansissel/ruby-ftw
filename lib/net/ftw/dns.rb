@@ -1,5 +1,9 @@
 require "net/ftw/namespace"
 require "socket"
+# TODO(sissel): Switch to using Resolv::DNS since it lets you (the programmer)
+# choose dns configuration (servers, etc)
+# I still need to wrap whatever Ruby provides because it is historically very
+# inconsistent in implementation behavior across ruby platforms and versions.
 
 # I didn't really want to write a DNS library.
 # The libc methods for dns resolution aren't exactly the most friendly. 

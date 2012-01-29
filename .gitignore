@@ -4,5 +4,6 @@
 *.tar.gz
 *.jar
 .bundle
+.rbx
 build
 .sass-cache

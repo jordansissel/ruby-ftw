@@ -9,6 +9,7 @@ GEM
     http_parser.rb (0.5.3-java)
     json (1.6.5)
     json (1.6.5-java)
+    minitest (2.11.0)
 
 PLATFORMS
   java
@@ -20,3 +21,4 @@ DEPENDENCIES
   cabin (= 0.1.8)
   http_parser.rb (= 0.5.3)
   json (= 1.6.5)
+  minitest
