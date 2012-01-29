@@ -1,5 +1,4 @@
 require "cabin" # rubygem "cabin"
-require "fcntl"
 require "net/ftw/dns"
 require "net/ftw/namespace"
 require "socket"
@@ -77,10 +76,10 @@ class Net::FTW::Connection
     #on(READER_CLOSED) { @reader_closed = true }
 
     @connect_timeout = 2
-    @read_size = 16384
 
     # Use a fixed-size string that we set to BINARY encoding.
     # Not all byte sequences are UTF-8 friendly :0
+    @read_size = 16384
     @read_buffer = " " * @read_size
 
     # Tell Ruby 1.9 that this string is a binary string, not utf-8 or somesuch.
