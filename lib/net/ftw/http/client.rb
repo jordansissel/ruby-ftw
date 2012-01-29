@@ -84,6 +84,11 @@ class Net::FTW::HTTP::Client
           "header was set in the response.")
       end
     end # connection.on HEADERS_COMPLETE
-    connection.run
+    #connection.run
   end # def prepare
+
+  # TODO(sissel): 
+  def run
+    # Select across all active connections, do read_and_trigger, etc.
+  end # def run
 end # class Net::FTW::HTTP::Client

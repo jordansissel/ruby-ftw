@@ -37,6 +37,8 @@ require "backport-bij" # for Array#rotate, IO::WaitWritable, etc, in ruby < 1.9
 #       puts data
 #     end
 #     conn.run
+#
+# You can use IO::select on this objects of this type.
 class Net::FTW::Connection
 
   # Events
@@ -61,6 +63,7 @@ class Net::FTW::Connection
   #
   # If you specify multiple destinations, they are used in a round-robin
   # decision made during reconnection.
+  public
   def initialize(destinations)
     if destinations.is_a?(String)
       @destinations = [destinations]
@@ -119,7 +122,7 @@ class Net::FTW::Connection
   end # def trigger
 
   public
-  def connect
+  def connect(timeout=nil)
     # TODO(sissel): Raise if we're already connected?
     close if connected?
     host, port = @destinations.first.split(":")
@@ -141,7 +144,7 @@ class Net::FTW::Connection
       # Ruby actually raises Errno::EINPROGRESS, but for some reason
       # the documentation says to use this IO::WaitWritable thing...
       # I don't get it, but whatever :(
-      if writable?(@connect_timeout)
+      if writable?(timeout)
         begin
           @socket.connect_nonblock(sockaddr) # check connection failure
         rescue Errno::EISCONN # Ignore, we're already connected.
@@ -161,6 +164,7 @@ class Net::FTW::Connection
   end # def connect
 
   # Is this Connection connected?
+  public
   def connected?
     return @connected
   end # def connected?
@@ -169,6 +173,7 @@ class Net::FTW::Connection
   # This method blocks until the write succeeds unless a timeout is given.
   #
   # Returns the number of bytes written (See IO#syswrite)
+  public
   def write(data, timeout=nil)
     #connect if !connected?
     if writable?(timeout)
@@ -183,6 +188,7 @@ class Net::FTW::Connection
   #
   # This method is not guaranteed to read exactly 'length' bytes. See
   # IO#sysread
+  public
   def read(length, timeout=nil)
     if readable?(timeout)
       begin
@@ -197,6 +203,7 @@ class Net::FTW::Connection
   end # def read
 
   # End this connection
+  public
   def disconnect(reason=INTENTIONAL)
     begin 
       #@reader_closed = true
@@ -258,15 +265,30 @@ class Net::FTW::Connection
   # For EventMachine, see TODO(sissel): Implement EventMachine support.
   public
   def run
-    connect if not connected?
+    connect(@connect_timeout) if not connected?
     while connected?
-      data = read(@read_size)
-      if data.length == 0
-        disconnect(EOFError)
-      else
-        trigger(DATA, data)
-      end
+      read_and_trigger
     end
   end # def run
+
+  # Read data and trigger data callbacks.
+  #
+  # This is mainly useful if you are implementing your own run loops
+  # and IO::select shenanigans.
+  public
+  def read_and_trigger
+    data = read(@read_size)
+    if data.length == 0
+      disconnect(EOFError)
+    else
+      trigger(DATA, data)
+    end
+  end # def read_and_trigger
+
+  # Support 'to_io' so you can use IO::select on this object.
+  public
+  def to_io
+    return @socket
+  end
 end # class Net::FTW::Connection
 
