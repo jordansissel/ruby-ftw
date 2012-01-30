@@ -21,6 +21,7 @@ class Net::FTW::HTTP::Client
   public
   def get(uri)
     prepare("GET", uri)
+    # TODO(sissel): ensure 'uri' scheme is http or https?
   end # def get
 
   public
@@ -37,6 +38,8 @@ class Net::FTW::HTTP::Client
     request.method = method
     request.version = 1.1
 
+    # TODO(sissel): This is starting to feel like not the best way to implement
+    # protocols.
     connection = Net::FTW::HTTP::Connection.new("#{uri.host}:#{uri.port}")
     connection.on(connection.class::CONNECTED) do |address|
       connection.write(request.to_s)
