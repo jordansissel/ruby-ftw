@@ -8,7 +8,10 @@ require "backport-bij" # for Array#rotate, IO::WaitWritable, etc, in ruby < 1.9
 # TODO(sissel): What's the API look like here?
 # EventMachine::Connection has these:
 #   * events: post_init (and connection_completed), receive_data, unbind
-#   * methods: send_data
+#   * methods: send_data, close
+# Socket has
+#   * no events
+#   * methods: connect, read, write, close
 #
 # Actual events:
 #   * connected
