@@ -19,12 +19,9 @@ class Net::FTW::HTTP::Connection < Net::FTW::Connection
     state = :headers
     parser.on_headers_complete = proc { state = :body; :stop }
 
-    save = File.open("/tmp/x", "w")
     on(DATA) do |data|
       # TODO(sissel): Implement this better. Should be able to swap out the
       # DATA handler at run-time
-      save.write(data)
-      save.flush
       if state == :headers
         offset = parser << data
         if state == :body
