@@ -154,11 +154,13 @@ class Net::FTW::Connection
         rescue Errno::ECONNREFUSED => e
           # Fire 'disconnected' event with reason :refused
           trigger(DISCONNECTED, :refused, e)
+          return
         end
       else
         # Connection timeout
         # Fire 'disconnected' event with reason :timeout
-          trigger(DISCONNECTED, :connect_timeout, nil)
+        trigger(DISCONNECTED, :connect_timeout, nil)
+        return
       end
     end
 
