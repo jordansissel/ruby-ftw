@@ -1,1 +1,3 @@
-require "net/ftw"
+require "ftw/agent"
+require "ftw/connection"
+require "ftw/dns"
