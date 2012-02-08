@@ -1,4 +1,4 @@
-require "net/ftw/namespace"
+require "ftw/namespace"
 require "ftw/crlf"
 
 # HTTP Headers
@@ -29,6 +29,8 @@ class FTW::HTTP::Headers
   def set(field, value)
     @headers[field.downcase] = value
   end # def set
+
+  alias_method :[]=, :set
 
   # Set a header field to a specific value.
   # Any existing value(s) for this field are destroyed.
@@ -99,6 +101,8 @@ class FTW::HTTP::Headers
     return @headers[field]
   end # def get
 
+  alias_method :[], :get
+
   # Iterate over headers. Given to the block are two arguments, the field name
   # and the field value. For fields with multiple values, you will receive
   # that same field name multiple times, like:
@@ -116,7 +120,17 @@ class FTW::HTTP::Headers
   end # end each
 
   public
+  def to_hash
+    return @headers
+  end # def to_hash
+
+  public
   def to_s
     return @headers.collect { |name, value| "#{name}: #{value}" }.join(CRLF) + CRLF
   end # def to_s
+  
+  public
+  def inspect
+    return "#{self.class.name} <#{to_hash.inspect}>"
+  end # def inspect
 end # class FTW::HTTP::Headers

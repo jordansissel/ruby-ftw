@@ -1,5 +1,6 @@
 require "ftw/namespace"
 require "ftw/http/message"
+require "ftw/response"
 require "addressable/uri" # gem addressable
 require "uri" # ruby stdlib
 require "http/parser" # gem http_parser.rb
@@ -25,14 +26,23 @@ class FTW::Request
   # RFC2616 5.1.2 - <http://tools.ietf.org/html/rfc2616#section-5.1.2>
   attr_accessor :request_uri
 
-  # Lemmings. Everyone else calls Request-URI the 'path' - so I should too.
+  # Lemmings. Everyone else calls Request-URI the 'path' (including me, most of
+  # the time), so let's just follow along.
   alias_method :path, :request_uri
+
+  # RFC2616 section 14.23 allows the Host header to include a port, but I have
+  # never seen this in practice, and I shudder to think about what poorly-behaving
+  # web servers will barf if the Host header includes a port. So, instead of
+  # storing the port in the Host header, it is stored here. It is not included
+  # in the Request when sent from a client and it is not used on a server.
+  attr_accessor :port
 
   public
   def initialize(uri=nil)
     super()
     use_uri(uri) if !uri.nil?
     @version = 1.1
+    @port = 80
   end # def initialize
 
   # Set the connection to use for this request.
@@ -41,17 +51,41 @@ class FTW::Request
     @connection = connection
   end # def connection=
 
+  # EXTERMINATE .. err.. execute this request on a connection.
+  #
+  # Writes the request, returns a Response object.
   public
   def execute(connection)
     connection.write(to_s + CRLF)
 
-    parser = HTTP::Parser.new
-    parser.on_headers_complete = proc { state = :body; :stop }
+    # TODO(sissel): Support request a body.
 
-    data = connection.read(16384)
-    parser << data
-    # TODO(sissel): use connection.unread() if we finish reading headers
-    # and there's still some data left that is part of the body.
+    parser = HTTP::Parser.new
+    headers_done = false
+    parser.on_headers_complete = proc { headers_done = true; :stop }
+
+    while true
+      data = connection.read(16384)
+      offset = parser << data
+      # headers_done will be set to true when parser finishes parsing the http
+      # headers for this request
+      next if !headers_done
+
+      # Done reading response header
+      response = FTW::Response.new
+      response.version = "#{parser.http_major}.#{parser.http_minor}".to_f
+      response.status = parser.status_code
+      parser.headers.each { |field, value| response.headers.add(field, value) }
+
+      # If we consumed part of the body while parsing headers, put it back
+      # onto the connection's read buffer so the next consumer can use it.
+      if offset < data.length
+        connection.pushback(data[offset .. -1])
+      end
+
+      response.body = connection
+      return response
+    end
   end # def execute
 
   # TODO(sissel): Methods to write:
@@ -61,7 +95,10 @@ class FTW::Request
   public
   def use_uri(uri)
     # Convert URI objects to Addressable::URI
-    uri = Addressable::URI.parse(uri.to_s) if uri.is_a?(URI)
+    case uri
+      when URI, String
+        uri = Addressable::URI.parse(uri.to_s)
+    end
 
     # TODO(sissel): Use normalized versions of these fields?
     # uri.host
@@ -72,6 +109,11 @@ class FTW::Request
     # uri.user
     @request_uri = uri.path
     @headers.set("Host", uri.host)
+    if uri.port.nil?
+      # default to port 80
+      uri.port = { "http" => 80, "https" => 443 }.fetch(uri.scheme, 80)
+    end
+    @port = uri.port
     
     # TODO(sissel): support authentication
   end # def use_uri

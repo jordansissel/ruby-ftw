@@ -61,7 +61,9 @@ module FTW::HTTP::Message
   # Does this message have a message body?
   public
   def body?
-    return @body.nil?
+    # In HTTP 1.1, there is a body if response sets Content-Length *or*
+    # Transfer-Encoding, it has a body. Otherwise, there is no body.
+    return headers.include?("Content-Length") || headers.include?("Transfer-Encoding")
   end # def body?
 
   # Set the HTTP version. Must be a valid version. See VALID_VERSIONS.

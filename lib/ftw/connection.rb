@@ -1,6 +1,6 @@
 require "cabin" # rubygem "cabin"
-require "net/ftw/dns"
-require "net/ftw/namespace"
+require "ftw/dns"
+require "ftw/namespace"
 require "socket"
 require "timeout" # ruby stdlib, just for the Timeout exception.
 require "backport-bij" # for Array#rotate, IO::WaitWritable, etc, in ruby < 1.9
@@ -10,6 +10,9 @@ require "backport-bij" # for Array#rotate, IO::WaitWritable, etc, in ruby < 1.9
 # You can use IO::select on this objects of this type.
 # (at least, in MRI you can)
 class FTW::Connection
+  class ConnectTimeout < StandardError; end
+  class ReadTimeout < StandardError; end
+
   # A new network connection.
   # The 'destination' argument can be an array of strings or a single string.
   # String format is expected to be "host:port"
@@ -34,6 +37,7 @@ class FTW::Connection
     # Not all byte sequences are UTF-8 friendly :0
     @read_size = 16384
     @read_buffer = " " * @read_size
+    @pushback_buffer = ""
 
     # Tell Ruby 1.9 that this string is a binary string, not utf-8 or somesuch.
     if @read_buffer.respond_to?(:force_encoding)
@@ -41,6 +45,7 @@ class FTW::Connection
     end
 
     # TODO(sissel): Validate @destinations
+    # TODO(sissel): Barf if a destination is not of the form "host:port"
   end # def initialize
 
   public
@@ -72,20 +77,21 @@ class FTW::Connection
       if writable?(timeout)
         begin
           @socket.connect_nonblock(sockaddr) # check connection failure
-        rescue Errno::EISCONN # Ignore, we're already connected.
+        rescue Errno::EISCONN 
+          # Ignore, we're already connected.
         rescue Errno::ECONNREFUSED => e
           # Fire 'disconnected' event with reason :refused
-          trigger(DISCONNECTED, :refused, e)
+          return e
         end
       else
         # Connection timeout
         # Fire 'disconnected' event with reason :timeout
-        trigger(DISCONNECTED, :connect_timeout, nil)
+        return ConnectTimeout.new
       end
     end
 
     # We're now connected.
-    trigger(CONNECTED, "#{host}:#{port}")
+    return true
   end # def connect
 
   # Is this Connection connected?
@@ -115,29 +121,34 @@ class FTW::Connection
   # IO#sysread
   public
   def read(timeout=nil)
-    if readable?(timeout)
-      if !@unread_buffer.empty?
-        data = @unread_buffer
-        @unread_buffer = ""
-        return data
-      end
+    data = ""
+    data.force_encoding("BINARY") if data.respond_to?(:force_encoding)
+    if !@pushback_buffer.empty?
+      data += @pushback_buffer
+      @pushback_buffer = ""
+      # Don't block indefinitely since we know we have data right now.
+      timeout = 0 if timeout == nil
+    end
 
+    if readable?(timeout)
       begin
         @socket.sysread(@read_size, @read_buffer)
-        return @read_buffer
+        data += @read_buffer
+        return data
       rescue EOFError
         trigger(READER_CLOSED)
       end
     else
-      raise Timeout::Error.new
+      raise ReadTimeout.new
     end
   end # def read
 
-  # Un-read some data
+  # Push back some data onto the connection's read buffer.
   public
-  def unread(data)
-    @unread_buffer << data
-  end # def unread
+  def pushback(data)
+    p :pushback => data[0..10]  + "..." + data[-10 .. -1]
+    @pushback_buffer << data
+  end # def pushback
 
   # End this connection, specifying why.
   public
@@ -226,6 +237,13 @@ class FTW::Connection
   public
   def to_io
     return @socket
-  end
+  end # def to_io
+
+  alias_method :inspect, :to_s
+
+  public
+  def inspect
+    return "#{self.class.name} <destinations=#{@destinations.inspect}>"
+  end # def inspect
 end # class FTW::Connection
 
