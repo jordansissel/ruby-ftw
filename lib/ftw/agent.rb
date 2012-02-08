@@ -46,7 +46,6 @@ class FTW::Agent
     return request
   end # def request
 
-  
   public
   def execute(request)
     # TODO(sissel): Make redirection-following optional, but default.
