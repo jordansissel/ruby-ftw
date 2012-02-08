@@ -12,12 +12,12 @@ uri = Addressable::URI.parse("http://google.com/")
 
 request = agent.get(uri)
 response = agent.execute(request)
+bytes = 0
 response.read_body do |chunk|
-  p chunk[0..30]
+  bytes += chunk.size
 end
+p :bytes => bytes
 
 request = agent.head(uri)
 response = agent.execute(request)
-response.read_body do |chunk|
-  p chunk[0..30]
-end
+puts :body? => response.body?

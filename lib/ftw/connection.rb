@@ -1,5 +1,6 @@
 require "cabin" # rubygem "cabin"
 require "ftw/dns"
+require "ftw/poolable"
 require "ftw/namespace"
 require "socket"
 require "timeout" # ruby stdlib, just for the Timeout exception.
@@ -12,6 +13,7 @@ require "backport-bij" # for Array#rotate, IO::WaitWritable, etc, in ruby < 1.9
 class FTW::Connection
   class ConnectTimeout < StandardError; end
   class ReadTimeout < StandardError; end
+  include FTW::Poolable
 
   # A new network connection.
   # The 'destination' argument can be an array of strings or a single string.
@@ -123,30 +125,34 @@ class FTW::Connection
   def read(timeout=nil)
     data = ""
     data.force_encoding("BINARY") if data.respond_to?(:force_encoding)
-    if !@pushback_buffer.empty?
-      data += @pushback_buffer
+    have_pushback = !@pushback_buffer.empty?
+    if have_pushback
+      data << @pushback_buffer
       @pushback_buffer = ""
-      # Don't block indefinitely since we know we have data right now.
-      timeout = 0 if timeout == nil
+      # We have data 'now' so don't wait.
+      timeout = 0
     end
 
     if readable?(timeout)
       begin
         @socket.sysread(@read_size, @read_buffer)
-        data += @read_buffer
+        data << @read_buffer
         return data
-      rescue EOFError
-        trigger(READER_CLOSED)
+      rescue EOFError => e
+        raise e
       end
     else
-      raise ReadTimeout.new
+      if have_pushback
+        return data
+      else
+        raise ReadTimeout.new
+      end
     end
   end # def read
 
   # Push back some data onto the connection's read buffer.
   public
   def pushback(data)
-    p :pushback => data[0..10]  + "..." + data[-10 .. -1]
     @pushback_buffer << data
   end # def pushback
 
@@ -208,31 +214,6 @@ class FTW::Connection
     return @remote_address
   end # def peer
 
-  # Run this Connection.
-  # This is generally meant for Threaded or synchronous operation. 
-  # For EventMachine, see TODO(sissel): Implement EventMachine support.
-  public
-  def run
-    connect(@connect_timeout) if not connected?
-    while connected?
-      read_and_trigger
-    end
-  end # def run
-
-  # Read data and trigger data callbacks.
-  #
-  # This is mainly useful if you are implementing your own run loops
-  # and IO::select shenanigans.
-  public
-  def read_and_trigger
-    data = read(@read_size)
-    if data.length == 0
-      disconnect(EOFError)
-    else
-      trigger(DATA, data)
-    end
-  end # def read_and_trigger
-
   # Support 'to_io' so you can use IO::select on this object.
   public
   def to_io
@@ -245,5 +226,17 @@ class FTW::Connection
   def inspect
     return "#{self.class.name} <destinations=#{@destinations.inspect}>"
   end # def inspect
+
+  # Mark this connection as used
+  public
+  def mark
+    @used = true
+  end
+
+  # Release this connection (make it available for re-use)
+  public
+  def release
+    @used = false
+  end # def release
 end # class FTW::Connection
 

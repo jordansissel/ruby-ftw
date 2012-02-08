@@ -65,7 +65,9 @@ class FTW::Request
     parser.on_headers_complete = proc { headers_done = true; :stop }
 
     while true
-      data = connection.read(16384)
+      data = connection.read
+      #p [data[0..40], data[-20..-1]].join("...")
+      #p data
       offset = parser << data
       # headers_done will be set to true when parser finishes parsing the http
       # headers for this request
@@ -82,8 +84,6 @@ class FTW::Request
       if offset < data.length
         connection.pushback(data[offset .. -1])
       end
-
-      response.body = connection
       return response
     end
   end # def execute

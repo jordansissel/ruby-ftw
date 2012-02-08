@@ -85,7 +85,7 @@ class FTW::Response
     # First line is 'Status-Line' from RFC2616 section 6.1
     # Status-Line = HTTP-Version SP Status-Code SP Reason-Phrase CRLF
     # etc...
-    return "HTTP-#{version} #{status} #{reason}"
+    return "HTTP/#{version} #{status} #{reason}"
   end # def status_line
 
   # Define the Message's start_line as status_line
@@ -99,12 +99,15 @@ class FTW::Response
   public
   def read_body(&block)
     if @body.respond_to?(:read)
-      if headers.include?("Content-Length")
+      if headers.include?("Content-Length") and headers["Content-Length"].to_i > 0
         read_body_length(headers["Content-Length"].to_i, &block)
       elsif headers["Transfer-Encoding"] == "chunked"
         read_body_chunked(&block)
       end
-    else
+
+      # If this is a poolable resource, release it (like a FTW::Connection)
+      @body.release if @body.respond_to?(:release)
+    elsif !@body.nil?
       yield @body
     end
   end # def read_body
@@ -114,7 +117,7 @@ class FTW::Response
     while length > 0
       data = @body.read
       length -= data.size
-      yield data[0 ... length]
+      yield data[0 ... length] # even if length is negative, this works
       @body.pushback(data[length .. -1]) if length < 0
     end
   end # def read_body_length
@@ -122,62 +125,20 @@ class FTW::Response
   # This is kind of messed, need to fix it.
   public
   def read_body_chunked(&block)
-    # RFC2616 section 3.6.1 <http://tools.ietf.org/html/rfc2616#section-3.6.1>
-    # Chunked-Body   = *chunk
-    #                  last-chunk
-    #                  trailer
-    #                  CRLF
-    # chunk          = chunk-size [ chunk-extension ] CRLF
-    #                  chunk-data CRLF
-    # chunk-size     = 1*HEX
-    # last-chunk     = 1*("0") [ chunk-extension ] CRLF
-    # chunk-extension= *( ";" chunk-ext-name [ "=" chunk-ext-val ] )
-    # chunk-ext-name = token
-    # chunk-ext-val  = token | quoted-string
-    # chunk-data     = chunk-size(OCTET)
-    # trailer        = *(entity-header CRLF)
-    last_chunk_seen = false
-    state = :chunksize
-    chunksize = 0
-    while true # will break on special conditions below
+    parser = HTTP::Parser.new
+
+    # Fake fill-in the response we've already read into the parser.
+    parser << to_s
+    parser << CRLF
+    parser.on_body = block
+    done = false
+    parser.on_message_complete = proc { done = true }
+
+    while !done # will break on special conditions below
       data = @body.read
-      p :state => state, :data => data[0..20] + "..." + data[-20..-1]
-      case state
-        when :chunksize # Reading the chunk-size
-          chunksize_str = data[/^[A-Fa-f0-9]+\r\n/]
-          if chunksize_str
-            #p :chunksize => chunksize
-            chunksize = chunksize_str.to_i(16)
-            state = :chunkdata
-            @body.pushback(data[chunksize_str.length .. -1])
-          end
-        when :chunkdata # Reading the chunk data
-          if data.size < chunksize
-            @body.pushback(data)
-            next
-          end
-          chunk = data[0...chunksize]
-          # push back the remainder if any
-          @body.pushback(data[chunksize..-1]) if data.size > chunksize
-          yield chunk
-          state = :crlf
-        when :crlf
-          if data.size < 2
-            @body.pushback(data)
-            next
-          end
-          raise "Expected CRLF (#{CRLF.inspect}), got #{data[0...2].inspect}" if data[0...2] != CRLF
-          @body.pushback(data[2..-1]) if data.size > 2
-          if chunksize == 0
-            state = :trailer 
-          else
-            state = :chunksize
-          end
-          # Reset read size
-          chunksize = 16384
-        when :trailer
-          p :trailer
-          # TODO(sissel): Parse trailer, just entity headers
+      offset = parser << data
+      if offset != data.length
+        raise "Parser dis not consume all data read?"
       end
     end
   end # def read_body_chunked

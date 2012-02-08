@@ -1,6 +1,7 @@
 require "ftw/namespace"
 require "ftw/request"
 require "ftw/connection"
+require "ftw/pool"
 require "addressable/uri"
 require "cabin"
 require "logger"
@@ -19,6 +20,7 @@ class FTW::Agent
   def initialize
     @logger = Cabin::Channel.new
     @logger.subscribe(Logger.new(STDOUT))
+    @pool = FTW::Pool.new
 
     @redirect_max = 20
   end # def initialize
@@ -44,21 +46,40 @@ class FTW::Agent
     return request
   end # def request
 
+  
   public
   def execute(request)
-    connection = connection(request.headers["Host"], request.port)
+    # TODO(sissel): Make redirection-following optional, but default.
+
+    connection = connect(request.headers["Host"], request.port)
     response = request.execute(connection)
 
     redirects = 0
     while response.redirect? and response.headers.include?("Location")
-      @logger.info("Redirecting", :location => response.headers["Location"])
+      # RFC2616 section 10.3.3 indicates HEAD redirects must not include a
+      # body. Otherwise, the redirect response can have a body, so let's
+      # throw it away.
+      if request.method != "HEAD" and response.content?
+        # Throw away the body
+        response.body = connection
+        response.read_body { |chunk| }
+      else
+        connection.release
+      end
+
+      @logger.debug("Redirecting", :location => response.headers["Location"])
       redirects += 1
-      connection = connection(request.headers["Host"], request.port)
       request.use_uri(response.headers["Location"])
+      connection = connect(request.headers["Host"], request.port)
       response = request.execute(connection)
     end
 
-    response.body = connection
+    # RFC 2616 section 9.4, HEAD requests MUST NOT have a message body.
+    if request.method != "HEAD"
+      response.body = connection
+    else
+      connection.release
+    end
     return response
   end # def execute
 
@@ -66,10 +87,17 @@ class FTW::Agent
   # TODO(sissel): Implement connection reuse
   # TODO(sissel): support SSL/TLS
   private
-  def connection(host, port)
-    connection = FTW::Connection.new("#{host}:#{port}")
-    @logger.info("Connecting", :connection => connection)
-    connection.connect
+  def connect(host, port)
+    address = "#{host}:#{port}"
+    @logger.debug("Fetching from pool", :address => address)
+    connection = @pool.fetch(address) do
+      @logger.info("New connection to #{address}")
+      connection = FTW::Connection.new(address)
+      connection.connect
+      connection
+    end
+    @logger.debug("Pool fetched a connection", :connection => connection)
+    connection.mark
     return connection
   end # def connect
 end # class FTW::Agent
