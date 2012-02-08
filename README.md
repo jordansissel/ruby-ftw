@@ -23,3 +23,27 @@ I want:
 * Tests, yo.
 * Logging, yo. With cabin, obviously.
 * [DNS in Ruby stdlib is broken](https://github.com/jordansissel/experiments/tree/master/ruby/dns-resolving-bug), I need to write my own
+
+## API Scratch
+
+### Common case
+
+    agent = FTW::Agent.new
+    request = agent.get("http://www.google.com/")
+    response = request.execute
+
+### SPDY
+
+    # SPDY should automatically be attempted. The caller should be unaware.
+
+### WebSockets
+
+    # 'http(s)' or 'ws(s)' urls are valid here. They will mean the same thing.
+    request = agent.websocket("http://somehost/endpoint")
+    # Set auth header
+    request["Authorization"] = ...
+    request["Cookie"] = ...
+
+    websocket, error = request.execute
+    # Now websocket.read receives a message, websocket.write sends a message.
+
