@@ -1,22 +1,18 @@
 # For The Web
 
-net/http is pretty much not good.
+net/http is pretty much not good. dns behavior in ruby changes quite frequently.
+
+Above all else, I want a consistent API and behavior that I can rely on. Ruby stdlib is not that thing.
 
 I want:
 
-* A HTTP client that acts as a full user agent, not just a single connection.
+* A HTTP client that acts as a full user agent, not just a single connections. (With connection reuse)
 * HTTP and SPDY support.
 * WebSockets support.
 * SSL/TLS support.
 * An API that lets me do what I need.
 * Server and Client modes.
 * Support for both normal operation and EventMachine would be nice.
-
-## DONE
-
-* TCP connection 
-* DNS resolution (wraps Socket.gethostname)
-* HTTP client partially done
 
 ## TODO
 
@@ -31,6 +27,9 @@ I want:
     agent = FTW::Agent.new
     request = agent.get("http://www.google.com/")
     response = request.execute
+
+    # Simpler
+    response = agent.get!("http://www.google.com/")
 
 ### SPDY
 
