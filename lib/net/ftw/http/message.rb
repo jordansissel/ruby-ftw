@@ -34,7 +34,7 @@ class Net::FTW::HTTP::Message
   def []=(header, value)
     @headers[header] = header
   end # def []=
-  
+
   # See RFC2616 section 4.3: <http://tools.ietf.org/html/rfc2616#section-4.3>
   public
   def body=(message_body)

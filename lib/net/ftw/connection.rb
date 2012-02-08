@@ -79,7 +79,6 @@ class Net::FTW::Connection
 
     on(CONNECTED) { |address| connected(address) }
     on(DISCONNECTED) { |reason, error| disconnected(reason, error) }
-    #on(READER_CLOSED) { @reader_closed = true }
 
     @connect_timeout = 2
 
@@ -154,13 +153,11 @@ class Net::FTW::Connection
         rescue Errno::ECONNREFUSED => e
           # Fire 'disconnected' event with reason :refused
           trigger(DISCONNECTED, :refused, e)
-          return
         end
       else
         # Connection timeout
         # Fire 'disconnected' event with reason :timeout
         trigger(DISCONNECTED, :connect_timeout, nil)
-        return
       end
     end
 

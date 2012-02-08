@@ -19,17 +19,13 @@ class Net::FTW::HTTP::Client
   
   # TODO(sissel): This method may not stay. I dunno yet.
   public
-  def get(uri)
-    prepare("GET", uri)
-    # TODO(sissel): ensure 'uri' scheme is http or https?
+  def get(uri, headers={})
+    # TODO(sissel): enforce uri scheme options? (ws, wss, http, https?)
+    prepare("GET", uri, headers)
   end # def get
 
   public
-  def prepare(method, uri)
-    #if !block_given?
-      #raise ArgumentError.new("No block given to #{self.class.name}#start" \
-        #"(#{method.inspect}, #{uri.inspect}")
-    #end
+  def prepare(method, uri, headers={})
     uri = Addressable::URI.parse(uri.to_s) if uri.is_a?(URI)
     uri.port ||= 80
 
@@ -37,6 +33,9 @@ class Net::FTW::HTTP::Client
     response = Net::FTW::HTTP::Response.new
     request.method = method
     request.version = 1.1
+    headers.each do |key, value|
+      request.headers[key] = value
+    end
 
     # TODO(sissel): This is starting to feel like not the best way to implement
     # protocols.
@@ -88,7 +87,27 @@ class Net::FTW::HTTP::Client
       end
     end # connection.on HEADERS_COMPLETE
     #connection.run
+    return connection
   end # def prepare
+
+  def prepare2(method, uri, headers={})
+    uri = Addressable::URI.parse(uri.to_s) if uri.is_a?(URI)
+    uri.port ||= 80
+
+    request = Net::FTW::HTTP::Request.new(uri)
+    response = Net::FTW::HTTP::Response.new
+    request.method = method
+    request.version = 1.1
+    headers.each do |key, value|
+      request.headers[key] = value
+    end
+
+    # TODO(sissel): This is starting to feel like not the best way to implement
+    # protocols.
+    id = "#{uri.scheme}://#{uri.host}:#{uri.port}/..."
+    connection = Net::FTW::HTTP::Connection.new("#{uri.host}:#{uri.port}")
+    @connections[id] = connection
+  end # def prepare2
 
   # TODO(sissel): 
   def run

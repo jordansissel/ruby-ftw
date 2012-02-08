@@ -2,7 +2,8 @@ require "net/ftw/namespace"
 require "net/ftw/http/request"
 require "net/ftw/http/response"
 require "openssl"
-require "digest/sha1" # TODO(sissel): Maybe just use openssl's one.
+require "base64" # stdlib 
+require "digest/sha1" # stdlib
 
 # WebSockets, RFC6455.
 #
@@ -21,7 +22,7 @@ class Net::FTW::WebSocket
   # 3. websocket protocol
 
   def initialize(uri)
-    uri = Addressable::URI.parse(uri.to_s) if uri.is_a?(URI) || uri.is_a?(String)
+    uri = Addressable::URI.parse(uri.to_s) if [URI, String].include?(uri.class)
     uri.port ||= 80
     @uri = uri
 
@@ -66,6 +67,7 @@ class Net::FTW::WebSocket
       @connection.write(CRLF)
     end
     @connection.on(@connection.class::HEADERS_COMPLETE) do |version, status, headers|
+      puts :HEADERS
       response.status = status
       response.version = version
       headers.each { |field, value| response.headers.add(field, value) }
@@ -73,29 +75,29 @@ class Net::FTW::WebSocket
       # TODO(sissel): Respect redirects
 
       if websocket_handshake_ok?(request, response)
-        p :handshake_valid
+        @connection.on(@connection.class::MESSAGE_BODY) do |data|
+          websocket_read(data)
+        end
+      elsif response.status == 101
+        # WebSocket handshake failed. Bad headers or bad hash?
+        @connection.disconnect("Invalid WebSocket handshake response")
       else
-        p :handshake_wrong
+        # Handle this http response normally, don't switch protocols
+        # Maybe this is a 302 redirect or something else
+        # TODO(sissel): handle the response normally
+        puts "Non-websocket response"
+        puts response.to_s
+        @connection.on(@connection.class::MESSAGE_BODY) do |data|
+          puts data
+        end
       end
- 
-      # Response code must be 101 to switch protocols
-      # header 'upgrade' == "websocket"
-      # header 'connection' == "Upgrade"
-      # header 'sec-websocket-accept' == some auth token based on key
-      #   previously given
-      #HTTP-1.1 101 Switching Protocols
-      #upgrade: websocket
-      #connection: Upgrade
-      #sec-websocket-accept: ndxQKHQ2QOTvSjlh03NbGWH899g=
-
-      puts response.to_s
-
-      # TODO(sissel): implement the websocket protocol now
-      @connection.disconnect
     end # @connection.on HEADERS_COMPLETE
-
     @connection.run
   end # def prepare
+
+  def websocket_read(data)
+    p :data => data
+  end # def websocket_read
 
   private
   def generate_key_nonce
@@ -115,15 +117,7 @@ class Net::FTW::WebSocket
     #
     # Thus, generate a random 16 byte string and encode i with base64.
     # Array#pack("m") packs with base64 encoding.
-    #return [OpenSSL::Random.random_bytes(16)].pack("m")
-    #return ["\0" * 16].pack("m")
-    require "base64"
-    #a = "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10"
-    p : => Base64.encode64(a)
-    #AQIDBAUGBwgJCgsMDQ4PEC
-    #AQIDBAUGBwgJCgsMDQ4PEA
-    return ["\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10"].pack("m")
-    #return "dGhlIHNhbXBsZSBub25jZQ=="
+    return Base64.strict_encode64(OpenSSL::Random.random_bytes(16))
   end # def generate_key_nonce
 
   private
@@ -137,7 +131,6 @@ class Net::FTW::WebSocket
     # Sec-WebSocket-Key (in base64) + WEBSOCKET_ACCEPT_UUID
     expected = request.headers.get("Sec-WebSocket-Key") + WEBSOCKET_ACCEPT_UUID
     expected_hash = Digest::SHA1.base64digest(expected)
-    p [expected_hash, response.headers.get("Sec-WebSocket-Accept")]
     return false unless response.headers.get("Sec-WebSocket-Accept") == expected_hash
 
     return true

@@ -4,10 +4,8 @@ require "socket"
 # choose dns configuration (servers, etc)
 # I still need to wrap whatever Ruby provides because it is historically very
 # inconsistent in implementation behavior across ruby platforms and versions.
-
+#
 # I didn't really want to write a DNS library.
-# The libc methods for dns resolution aren't exactly the most friendly. 
-# Not totally sure why Ruby stdlib basically just mirrors that API :(
 class Net::FTW::DNS
   V4_IN_V6_PREFIX = "0:" * 12
 
