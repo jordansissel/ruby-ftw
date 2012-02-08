@@ -226,17 +226,5 @@ class FTW::Connection
   def inspect
     return "#{self.class.name} <destinations=#{@destinations.inspect}>"
   end # def inspect
-
-  # Mark this connection as used
-  public
-  def mark
-    @used = true
-  end
-
-  # Release this connection (make it available for re-use)
-  public
-  def release
-    @used = false
-  end # def release
 end # class FTW::Connection
 
