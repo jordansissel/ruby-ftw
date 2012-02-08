@@ -9,7 +9,7 @@ EventMachine.run do
       puts "WebSocket connection open"
 
       # publish message to the client
-      #ws.send "Hello Client"
+      ws.send "Hello Client"
     end
 
     ws.onclose { puts "Connection closed" }

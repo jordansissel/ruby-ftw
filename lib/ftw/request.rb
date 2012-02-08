@@ -40,9 +40,9 @@ class FTW::Request
   public
   def initialize(uri=nil)
     super()
-    use_uri(uri) if !uri.nil?
-    @version = 1.1
     @port = 80
+    @version = 1.1
+    use_uri(uri) if !uri.nil?
   end # def initialize
 
   # Set the connection to use for this request.
@@ -64,28 +64,31 @@ class FTW::Request
     headers_done = false
     parser.on_headers_complete = proc { headers_done = true; :stop }
 
-    while true
+    # headers_done will be set to true when parser finishes parsing the http
+    # headers for this request
+    while !headers_done
+      # TODO(sissel): This read could toss an exception of the server aborts
+      # prior to sending the full headers. Figure out a way to make this happy.
+      # Perhaps fabricating a 500 response?
       data = connection.read
-      #p [data[0..40], data[-20..-1]].join("...")
-      #p data
+
+      # Feed the data into the parser. Offset will be nonzero if there's 
+      # extra data beyond the header.
       offset = parser << data
-      # headers_done will be set to true when parser finishes parsing the http
-      # headers for this request
-      next if !headers_done
-
-      # Done reading response header
-      response = FTW::Response.new
-      response.version = "#{parser.http_major}.#{parser.http_minor}".to_f
-      response.status = parser.status_code
-      parser.headers.each { |field, value| response.headers.add(field, value) }
-
-      # If we consumed part of the body while parsing headers, put it back
-      # onto the connection's read buffer so the next consumer can use it.
-      if offset < data.length
-        connection.pushback(data[offset .. -1])
-      end
-      return response
     end
+
+    # Done reading response header
+    response = FTW::Response.new
+    response.version = "#{parser.http_major}.#{parser.http_minor}".to_f
+    response.status = parser.status_code
+    parser.headers.each { |field, value| response.headers.add(field, value) }
+
+    # If we consumed part of the body while parsing headers, put it back
+    # onto the connection's read buffer so the next consumer can use it.
+    if offset < data.length
+      connection.pushback(data[offset .. -1])
+    end
+    return response
   end # def execute
 
   # TODO(sissel): Methods to write:

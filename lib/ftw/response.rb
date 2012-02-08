@@ -143,6 +143,14 @@ class FTW::Response
     end
   end # def read_body_chunked
 
+  public
+  def upgrade?
+    return false unless status == 101 # "Switching Protocols"
+    return false unless headers["Connection"] == "Upgrade"
+    #return false unless headers["Upgrade"] == "websocket"
+    return true
+  end # def upgrade
+
   # TODO(sissel): Methods to write:
   # 1. Parsing a request, use HTTP::Parser from http_parser.rb
   # 2. Building a request from a URI or Addressable::URI

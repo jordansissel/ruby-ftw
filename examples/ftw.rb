@@ -1,6 +1,5 @@
 require "rubygems"
 require "addressable/uri"
-require "thread"
 
 $: << File.join(File.dirname(__FILE__), "lib")
 require "ftw/agent"
@@ -10,8 +9,7 @@ agent = FTW::Agent.new
 uri = Addressable::URI.parse("http://google.com/")
 #uri = Addressable::URI.parse("http://twitter.com/")
 
-request = agent.get(uri)
-response = agent.execute(request)
+response = agent.get!(uri)
 bytes = 0
 response.read_body do |chunk|
   bytes += chunk.size
