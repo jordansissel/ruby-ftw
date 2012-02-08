@@ -1,9 +1,9 @@
-require File.join(File.expand_path(__FILE__).sub(/\/net\/ftw\/.*/, "/testing"))
-require "net/ftw/http/headers"
+require File.join(File.expand_path(__FILE__).sub(/\/ftw\/.*/, "/testing"))
+require "ftw/http/headers"
 
-describe Net::FTW::HTTP::Headers do
+describe FTW::HTTP::Headers do
   before do
-    @headers = Net::FTW::HTTP::Headers.new
+    @headers = FTW::HTTP::Headers.new
   end
 
   test "add adds" do
@@ -47,4 +47,4 @@ describe Net::FTW::HTTP::Headers do
     @headers.remove("foo", "two")
     assert_equal("one", @headers.get("foo"))
   end
-end # describe Net::FTW::HTTP::Headers
+end # describe FTW::HTTP::Headers
