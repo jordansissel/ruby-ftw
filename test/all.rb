@@ -2,6 +2,10 @@ require "rubygems"
 require "minitest/spec"
 require "minitest/autorun"
 
+# Get coverage report
+require "simplecov"
+SimpleCov.start
+
 # Add '../lib' to the require path.
 $: << File.join(File.dirname(__FILE__), "..", "lib")
 

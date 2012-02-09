@@ -10,6 +10,11 @@ GEM
     json (1.6.5)
     json (1.6.5-java)
     minitest (2.11.0)
+    multi_json (1.0.4)
+    simplecov (0.5.4)
+      multi_json (~> 1.0.3)
+      simplecov-html (~> 0.5.3)
+    simplecov-html (0.5.3)
 
 PLATFORMS
   java
@@ -22,3 +27,4 @@ DEPENDENCIES
   http_parser.rb (= 0.5.3)
   json (= 1.6.5)
   minitest
+  simplecov
