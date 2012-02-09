@@ -37,10 +37,16 @@ class FTW::Request
   # in the Request when sent from a client and it is not used on a server.
   attr_accessor :port
 
+  # This is *not* an RFC2616 field. It exists so that the connection handling
+  # this request knows what protocol to use. The protocol for this request.
+  # Usually 'http' or 'https' or perhaps 'spdy' maybe?
+  attr_accessor :protocol
+
   public
   def initialize(uri=nil)
     super()
     @port = 80
+    @protocol = "http"
     @version = 1.1
     use_uri(uri) if !uri.nil?
   end # def initialize
@@ -56,7 +62,19 @@ class FTW::Request
   # Writes the request, returns a Response object.
   public
   def execute(connection)
-    connection.write(to_s + CRLF)
+    tries = 3
+    begin
+      connection.write(to_s + CRLF)
+    rescue => e
+      # TODO(sissel): Rescue specific exceptions, not just anything.
+      # Reconnect and retry
+      if tries > 0
+        connection.connect
+        retry
+      else
+        raise e
+      end
+    end
 
     # TODO(sissel): Support request a body.
 
@@ -112,6 +130,7 @@ class FTW::Request
     # uri.user
     @request_uri = uri.path
     @headers.set("Host", uri.host)
+    @protocol = uri.scheme
     if uri.port.nil?
       # default to port 80
       uri.port = { "http" => 80, "https" => 443 }.fetch(uri.scheme, 80)

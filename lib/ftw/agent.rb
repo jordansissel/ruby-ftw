@@ -14,19 +14,26 @@ require "logger"
 # * HTTP Upgrade support
 # * Websockets
 # * SSL/TLS
+#
+# TODO(sissel): TBD: implement cookies... delicious chocolate chip cookies.
 class FTW::Agent
-  # TODO(sissel): All standard HTTP methods should be defined here.
-  # Also allow users to specify non-standard methods.
-  
   def initialize
-    @logger = Cabin::Channel.new
-    @logger.subscribe(Logger.new(STDOUT))
-    @logger.level = :debug
     @pool = FTW::Pool.new
+    @logger = Cabin::Channel.get($0)
+    @logger.subscribe(Logger.new(STDOUT))
+    @logger.level = :warn
 
     @redirect_max = 20
   end # def initialize
 
+  # Define all the standard HTTP methods (Per RFC2616)
+  # As an example, for "get" method, this will define these methods:
+  # 
+  # * FTW::Agent#get(uri, options={})
+  # * FTW::Agent#get!(uri, options={})
+  #
+  # The first one returns a FTW::Request you must pass to Agent#execute(...)
+  # The second does the execute for you and returns a FTW::Response.
   %w(options get head post put delete trace connect).each do |name|
     m = name.upcase
 
@@ -94,6 +101,7 @@ class FTW::Agent
     # TODO(sissel): Make redirection-following optional, but default.
 
     connection = connect(request.headers["Host"], request.port)
+    connection.secure if request.protocol == "https"
     response = request.execute(connection)
 
     redirects = 0
@@ -115,10 +123,14 @@ class FTW::Agent
         response.read_body { |chunk| }
       end
 
+      # TODO(sissel): If this response has any cookies, store them in the
+      # agent's cookie store
+
       @logger.debug("Redirecting", :location => response.headers["Location"])
       redirects += 1
       request.use_uri(response.headers["Location"])
       connection = connect(request.headers["Host"], request.port)
+      connection.secure if request.protocol == "https"
       response = request.execute(connection)
     end
 
@@ -128,6 +140,9 @@ class FTW::Agent
     else
       connection.release
     end
+   
+    # TODO(sissel): If this response has any cookies, store them in the
+    # agent's cookie store
     return response
   end # def execute
 
