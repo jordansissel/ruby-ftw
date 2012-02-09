@@ -33,6 +33,7 @@ class FTW::Connection
       @destinations = destinations
     end
 
+    @logger = Cabin::Channel.get($0)
     @connect_timeout = 2
 
     # Use a fixed-size string that we set to BINARY encoding.
@@ -60,6 +61,9 @@ class FTW::Connection
     # Do dns resolution on the host. If there are multiple
     # addresses resolved, return one at random.
     @remote_address = FTW::DNS.singleton.resolve_random(host)
+
+    @logger.debug("Connecting", :address => @remote_address,
+                  :host => host, :port => port)
 
     # Addresses with colon ':' in them are assumed to be IPv6
     family = @remote_address.include?(":") ? Socket::AF_INET6 : Socket::AF_INET
@@ -220,11 +224,78 @@ class FTW::Connection
     return @socket
   end # def to_io
 
-  alias_method :inspect, :to_s
-
+  # def inspect
   public
   def inspect
-    return "#{self.class.name} <destinations=#{@destinations.inspect}>"
+    return "<#{self.class.name} destinations=#{@destinations.inspect}>"
   end # def inspect
+  alias_method :inspect, :to_s
+
+  # Secure this connection with TLS.
+  public
+  def secure(timeout=nil, options={})
+    # Skip this if we're already secure.
+    return if secured?
+
+    @logger.debug("Securing this connection", :peer => peer, :connection => self)
+    # Wrap this connection with TLS/SSL
+    require "openssl"
+    sslcontext = OpenSSL::SSL::SSLContext.new
+    sslcontext.ssl_version = :TLSv1
+    # If you use VERIFY_NONE, you are removing an important piece 
+    sslcontext.verify_mode = OpenSSL::SSL::VERIFY_PEER
+    # TODO(sissel): Try to be smart about setting this default.
+    sslcontext.ca_path = "/etc/ssl/certs"
+    logit = lambda { |what| proc { |*args| @logger.info(what, :args => args) } }
+    sslcontext.methods.grep(/_cb=/).each do |what|
+      sslcontext.send("#{what}", logit.call(what))
+    end
+    @socket = OpenSSL::SSL::SSLSocket.new(@socket, sslcontext)
+
+    # SSLSocket#connect_nonblock will do the SSL/TLS handshake.
+    # TODO(sissel): refactor this into a method that both secure and connect
+    # methods can call.
+    start = Time.now
+    begin
+      @socket.connect_nonblock
+    rescue IO::WaitReadable, IO::WaitWritable
+      # The ruby OpenSSL docs for 1.9.3 have example code saying I should use
+      # IO::WaitReadable, but in the real world it raises an SSLError with
+      # a specific string message instead of Errno::EAGAIN or IO::WaitReadable
+      # explicitly...
+      #
+      # This SSLSocket#connect_nonblock raising WaitReadable (Technically,
+      # OpenSSL::SSL::SSLError) is in contrast to what Socket#connect_nonblock
+      # raises, WaitWritable (ok, Errno::EINPROGRESS, technically)
+      # Ruby's SSL exception for 'this call would block' is pretty shitty.
+      #
+      # If the exception string is *not* 'read would block' we have a real
+      # problem.
+      #if e.to_s != "read would block"
+        #raise e
+      #end
+      
+      if !timeout.nil?
+        time_left = timeout - (Time.now - start)
+        raise ConnectTimeout.new if time_left < 0
+        r, w, e = IO.select([@socket], [@socket], nil, time_left)
+      else
+        r, w, e = IO.select([@socket], [@socket], nil, timeout)
+      end
+
+      # try connect_nonblock again if the socket is ready
+      retry if r.size > 0 || w.size > 0
+      # otherwise, timed out.
+    end
+
+    @secure = true
+  end # def secure
+
+  # Has this connection been secured?
+  public
+  def secured?
+    return @secure
+  end # def secured?
+
 end # class FTW::Connection
 
