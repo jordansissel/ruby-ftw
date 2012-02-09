@@ -1,21 +1,30 @@
 require "rubygems"
-require "addressable/uri"
+require "ftw" # gem ftw
+require "cabin" # gem cabin
+require "logger" # ruby stdlib
 
-$: << File.join(File.dirname(__FILE__), "lib")
-require "ftw/agent"
+if ARGV.length != 1
+  puts "Usage: #{$0} <url>" 
+  exit 1
+end
 
 agent = FTW::Agent.new
-#uri = Addressable::URI.parse("http://httpbin.org/ip")
-uri = Addressable::URI.parse("http://google.com/")
-#uri = Addressable::URI.parse("http://twitter.com/")
+url = ARGV[0]
 
-response = agent.get!(uri)
-bytes = 0
-response.read_body do |chunk|
-  bytes += chunk.size
+logger = Cabin::Channel.new
+logger.subscribe(Logger.new(STDOUT))
+
+# Fetch the url 5 times, demonstrating connection reuse, etc.
+5.times do
+  logger.time("Fetch #{url}") do
+    response = agent.get!(url)
+    bytes = 0
+    response.read_body do |chunk|
+      bytes += chunk.size
+    end
+    logger.info("Request complete", :body_length => bytes)
+  end
+
+  # Be nice, slow down.
+  sleep 1
 end
-p :bytes => bytes
-
-request = agent.head(uri)
-response = agent.execute(request)
-puts :body? => response.body?

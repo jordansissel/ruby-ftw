@@ -35,3 +35,7 @@ test-package: $(GEM)
 .PHONY: publish
 publish: test-package
 	gem push $(GEM)
+
+.PHONY: install
+install: $(GEM)
+	gem install $(GEM)
