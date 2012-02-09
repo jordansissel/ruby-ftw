@@ -1,5 +1,6 @@
 require "ftw/namespace"
 require "ftw/http/message"
+require "cabin" # gem cabin
 require "http/parser" # gem http_parser.rb
 
 class FTW::Response 
@@ -50,6 +51,7 @@ class FTW::Response
   public
   def initialize
     super
+    @logger = Cabin::Channel.get
     @reason = "" # Empty reason string by default. It is not required.
   end # def initialize
 
@@ -100,8 +102,10 @@ class FTW::Response
   def read_body(&block)
     if @body.respond_to?(:read)
       if headers.include?("Content-Length") and headers["Content-Length"].to_i > 0
+        @logger.debug("Reading body with Content-Length")
         read_body_length(headers["Content-Length"].to_i, &block)
       elsif headers["Transfer-Encoding"] == "chunked"
+        @logger.debug("Reading body with chunked encoding")
         read_body_chunked(&block)
       end
 
@@ -112,13 +116,23 @@ class FTW::Response
     end
   end # def read_body
 
+  # Read the length bytes from the body. Yield each chunk read to the block
+  # given.
   public
   def read_body_length(length, &block)
-    while length > 0
+    remaining = length
+    while remaining > 0
       data = @body.read
-      length -= data.size
-      yield data[0 ... length] # even if length is negative, this works
-      @body.pushback(data[length .. -1]) if length < 0
+      @logger.debug("Read bytes", :length => data.size)
+      if data.size > remaining
+        # Read too much data, only wanted part of this. Push the rest back.
+        yield data[0..remaining]
+        remaining = 0
+        @body.pushback(data[remaining .. -1]) if remaining < 0
+      else
+        yield data
+        remaining -= data.size
+      end
     end
   end # def read_body_length
 
