@@ -1,4 +1,5 @@
 require "ftw/namespace"
+require "cabin"
 
 # Based on behavior and things described in RFC6265
 class FTW::Cookies
@@ -33,8 +34,36 @@ class FTW::Cookies
 
     # See RFC6265 section 4.1.1
     def self.parse(set_cookie_string)
+      @logger ||= Cabin::Channel.get($0)
       # TODO(sissel): Implement
-    end
+      # grammar is:
+      #  set-cookie-string = cookie-pair *( ";" SP cookie-av )
+      #  cookie-pair       = cookie-name "=" cookie-value
+      #  cookie-name       = token
+      #  cookie-value      = *cookie-octet / ( DQUOTE *cookie-octet DQUOTE )
+      pair, *attributes = set_cookie_string.split(/\s*;\s*/)
+      name, value = pair.split(/\s*=\s*/)
+      extra = {}
+      attributes.each do |attr|
+        case attr
+          when /^Expires=/
+            #extra[:expires] = 
+          when /^Max-Age=/
+            # TODO(sissel): Parse the Max-Age value and convert it to 'expires'
+            #extra[:expires] = 
+          when /^Domain=/
+            extra[:domain] = attr[7:]
+          when /^Path=/
+            extra[:path] = attr[5:]
+          when /^Secure/
+            extra[:secure] = true
+          when /^HttpOnly/
+            extra[:httponly] = true
+          else
+            
+        end
+      end
+    end # def Cookie.parse
   end # class Cookie
 
   def initialize
