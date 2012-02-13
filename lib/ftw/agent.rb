@@ -7,16 +7,36 @@ require "addressable/uri"
 require "cabin"
 require "logger"
 
-# This should act as a proper agent.
+# This should act as a proper web agent.
 #
-# * Keep cookies. Offer local-storage of cookies
-# * Reuse connections. HTTP 1.1 Connection: keep-alive
-# * HTTP Upgrade support
-# * Websockets
-# * SSL/TLS
+# * Reuse connections.
+# * SSL/TLS.
+# * HTTP Upgrade support.
+# * HTTP 1.1 (RFC2616).
+# * WebSockets (RFC6455).
+# * Support Cookies.
+#
+# All standard HTTP methods defined by RFC2616 are available as methods on 
+# this agent: get, head, put, etc.
+#
+# Example:
+#
+#     agent = FTW::Agent.new
+#     request = agent.get("http://www.google.com/")
+#     response = agent.execute(request)
+#     puts response.body.read
+#
+# For any standard http method (like 'get') you can invoke it with '!' on the end
+# and it will execute and return a FTW::Response object:
+#
+#     agent = FTW::Agent.new
+#     response = agent.get!("http://www.google.com/")
+#     puts response.body.head
 #
 # TODO(sissel): TBD: implement cookies... delicious chocolate chip cookies.
 class FTW::Agent
+  STANDARD_METHODS = %w(options get head post put delete trace connect)
+
   def initialize
     @pool = FTW::Pool.new
     @logger = Cabin::Channel.get($0)
@@ -34,7 +54,9 @@ class FTW::Agent
   #
   # The first one returns a FTW::Request you must pass to Agent#execute(...)
   # The second does the execute for you and returns a FTW::Response.
-  %w(options get head post put delete trace connect).each do |name|
+  # 
+  # For a full list of these available methods, see STANDARD_METHODS.
+  STANDARD_METHODS.each do |name|
     m = name.upcase
 
     # define 'get' etc method.
@@ -46,7 +68,7 @@ class FTW::Agent
     define_method("#{name}!".to_sym) do |uri, options={}|
       return execute(request(m, uri, options))
     end
-  end
+  end # STANDARD_METHODS.each
 
   # Send the request as an HTTP upgrade.
   # 
@@ -62,14 +84,16 @@ class FTW::Agent
     else
       return response, nil
     end
-  end # def upgrade
+  end # def upgrade!
 
-  # Make a new websocket connection
+  # Make a new websocket connection.
+  #
   # This will send the http request. If the websocket handshake
   # is successful, a FTW::WebSocket instance will be returned.
   # Otherwise, a FTW::Response will be returned.
   public
   def websocket!(uri, options={})
+    # TODO(sissel): Use FTW::Agent#upgrade! ?
     req = request("GET", uri, options)
     ws = FTW::WebSocket.new(req)
     response = execute(req)
@@ -77,8 +101,10 @@ class FTW::Agent
       # response.body is a FTW::Connection
       ws.connection = response.body
 
-      # There seems to be a bug in http_parser.rb where websocket
-      # responses lead with a newline for some reason. Work around it.
+      # TODO(sissel): Investigate this bug
+      # There seems to be a bug in http_parser.rb (or in this library) where
+      # websocket responses lead with a newline for some reason. Work around
+      # it.
       data = response.body.read
       if data[0] == "\n"
         response.body.pushback(data[1..-1])
@@ -91,6 +117,21 @@ class FTW::Agent
     end
   end # def websocket!
 
+  # Make a request. Returns a FTW::Request object.
+  #
+  # Arguments:
+  #
+  # * method - the http method
+  # * uri - the URI to make the request to
+  # * options - a hash of options
+  #
+  # uri can be a valid url or an Addressable::URI object.
+  # The uri will be used to choose the host/port to connect to. It also sets
+  # the protocol (https, etc). Further, it will set the 'Host' header.
+  #
+  # The 'options' hash supports the following keys:
+  # 
+  # * :headers => { string => string, ... }. This allows you to set header values.
   public
   def request(method, uri, options)
     @logger.info("Creating new request", :method => method, :uri => uri, :options => options)
@@ -107,6 +148,13 @@ class FTW::Agent
     return request
   end # def request
 
+  # Execute a FTW::Request in this Agent.
+  #
+  # If an existing, idle connection is already open to the target server
+  # of this Request, it will be reused. Otherwise, a new connection
+  # is opened.
+  #
+  # Redirects are always followed.
   public
   def execute(request)
     # TODO(sissel): Make redirection-following optional, but default.
@@ -158,8 +206,6 @@ class FTW::Agent
   end # def execute
 
   # Returns a FTW::Connection connected to this host:port.
-  # TODO(sissel): Implement connection reuse
-  # TODO(sissel): support SSL/TLS
   private
   def connect(host, port)
     address = "#{host}:#{port}"
