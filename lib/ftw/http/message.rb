@@ -3,41 +3,52 @@ require "ftw/http/headers"
 require "ftw/crlf"
 
 # HTTP Message, RFC2616
+# For specification, see RFC2616 section 4: <http://tools.ietf.org/html/rfc2616#section-4>
+#
+# You probably won't use this class much. Instead, check out {FTW::Request} and {FTW::Response}
 module FTW::HTTP::Message
   include FTW::CRLF
 
-  # The HTTP headers. See FTW::HTTP::Headers
+  # The HTTP headers - See {FTW::HTTP::Headers}.
   # RFC2616 5.3 - <http://tools.ietf.org/html/rfc2616#section-5.3>
   attr_reader :headers
 
-  # The HTTP version. See VALID_VERSIONS for valid versions.
+  # The HTTP version. See {VALID_VERSIONS} for valid versions.
   # This will always be a Numeric object.
   # Both Request and Responses have version, so put it in the parent class.
   attr_accessor :version
+
+  # HTTP Versions that are valid.
   VALID_VERSIONS = [1.0, 1.1]
 
-  # A new HTTP Message. You probably won't use this class much. 
-  # See RFC2616 section 4: <http://tools.ietf.org/html/rfc2616#section-4>
-  # See Request and Response.
-  public
+  private
+
+  # A new HTTP message.
   def initialize
     @headers = FTW::HTTP::Headers.new
     @body = nil
   end # def initialize
 
-  # get a header value
-  public
-  def [](header)
+  # Get a header value by field name.
+  #
+  # @param [String] the name of the field. (case insensitive)
+  def [](field)
     return @headers[header]
   end # def []
 
-  public
-  def []=(header, value)
-    @headers[header] = header
+  # Set a header field
+  #
+  # @param [String] the name of the field. (case insensitive)
+  # @param [String] the value to set for this field
+  def []=(field, value)
+    @headers[field] = header
   end # def []=
 
+  # Set the body of this message
+  #
+  # The 'message_body' can be an IO-like object, Enumerable, or String.
+  #
   # See RFC2616 section 4.3: <http://tools.ietf.org/html/rfc2616#section-4.3>
-  public
   def body=(message_body)
     # TODO(sissel): if message_body is a string, set Content-Length header
     # TODO(sissel): if it's an IO object, set Transfer-Encoding to chunked
@@ -46,7 +57,10 @@ module FTW::HTTP::Message
     @body = message_body
   end # def body=
 
-  public
+  # Get the body of this message
+  #
+  # Returns an Enumerable, IO-like object, or String, depending on how this
+  # message was built.
   def body
     # TODO(sissel): verification todos follow...
     # TODO(sissel): RFC2616 section 4.3 - if there is a message body
@@ -58,22 +72,21 @@ module FTW::HTTP::Message
     return @body
   end # def body
 
-  # Does this message have a message body / content?
-  public
+  # Should this message have a content?
+  #
+  # In HTTP 1.1, there is a body if response sets Content-Length *or*
+  # Transfer-Encoding, it has a body. Otherwise, there is no body.
   def content?
-    # In HTTP 1.1, there is a body if response sets Content-Length *or*
-    # Transfer-Encoding, it has a body. Otherwise, there is no body.
     return (headers.include?("Content-Length") and headers["Content-Length"].to_i > 0) \
       || headers.include?("Transfer-Encoding")
   end # def content?
 
-  public
+  # Does this message have a body?
   def body?
     return @body.nil?
   end # def body?
 
   # Set the HTTP version. Must be a valid version. See VALID_VERSIONS.
-  public
   def version=(ver)
     # Accept string "1.0" or simply "1", etc.
     ver = ver.to_f if !ver.is_a?(Float)
@@ -93,8 +106,10 @@ module FTW::HTTP::Message
   #                       CRLF
   #                       [ message-body ]
   # Thus, the CRLF between header and body is not part of the header.
-  public
   def to_s
     return [start_line, @headers].join(CRLF)
   end
+
+  public(:initialize, :headers, :version, :version=, :[], :[]=, :body=, :body,
+         :content?, :body?, :to_s)
 end # class FTW::HTTP::Message

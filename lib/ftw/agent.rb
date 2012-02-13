@@ -37,6 +37,10 @@ require "logger"
 class FTW::Agent
   STANDARD_METHODS = %w(options get head post put delete trace connect)
 
+  # Everything is private by default.
+  # At the bottom of this class, public methods will be declared.
+  private
+
   def initialize
     @pool = FTW::Pool.new
     @logger = Cabin::Channel.get($0)
@@ -91,7 +95,6 @@ class FTW::Agent
   # This will send the http request. If the websocket handshake
   # is successful, a FTW::WebSocket instance will be returned.
   # Otherwise, a FTW::Response will be returned.
-  public
   def websocket!(uri, options={})
     # TODO(sissel): Use FTW::Agent#upgrade! ?
     req = request("GET", uri, options)
@@ -132,7 +135,6 @@ class FTW::Agent
   # The 'options' hash supports the following keys:
   # 
   # * :headers => { string => string, ... }. This allows you to set header values.
-  public
   def request(method, uri, options)
     @logger.info("Creating new request", :method => method, :uri => uri, :options => options)
     request = FTW::Request.new(uri)
@@ -155,7 +157,9 @@ class FTW::Agent
   # is opened.
   #
   # Redirects are always followed.
-  public
+  #
+  # @params
+  # @return [FTW::Response] the response for this request.
   def execute(request)
     # TODO(sissel): Make redirection-following optional, but default.
 
@@ -206,7 +210,6 @@ class FTW::Agent
   end # def execute
 
   # Returns a FTW::Connection connected to this host:port.
-  private
   def connect(host, port)
     address = "#{host}:#{port}"
     @logger.debug("Fetching from pool", :address => address)
@@ -220,4 +223,6 @@ class FTW::Agent
     connection.mark
     return connection
   end # def connect
+
+  public(:initialize, :execute, :websocket!, :upgrade!)
 end # class FTW::Agent

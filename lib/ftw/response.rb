@@ -9,10 +9,6 @@ require "http/parser" # gem http_parser.rb
 class FTW::Response 
   include FTW::HTTP::Message
 
-  # The HTTP version number
-  # See RFC2616 section 6.1: <http://tools.ietf.org/html/rfc2616#section-6.1>
-  attr_reader :version
-
   # The http status code (RFC2616 6.1.1)
   # See RFC2616 section 6.1.1: <http://tools.ietf.org/html/rfc2616#section-6.1.1>
   attr_reader :status
@@ -51,8 +47,9 @@ class FTW::Response
 
   attr_accessor :body
 
+  private
+
   # Create a new Response.
-  public
   def initialize
     super
     @logger = Cabin::Channel.get
@@ -60,21 +57,18 @@ class FTW::Response
   end # def initialize
 
   # Is this response a redirect?
-  public
   def redirect?
     # redirects are 3xx
     return @status >= 300 && @status < 400
   end # redirect?
 
   # Is this response an error?
-  public
   def error?
     # 4xx and 5xx are errors
     return @status >= 400 && @status < 600
   end # def error?
 
   # Set the status code
-  public
   def status=(code)
     code = code.to_i if !code.is_a?(Fixnum)
     # TODO(sissel): Validate that 'code' is a 3 digit number
@@ -86,7 +80,6 @@ class FTW::Response
   end # def status=
 
   # Get the status-line string, like "HTTP/1.0 200 OK"
-  public
   def status_line
     # First line is 'Status-Line' from RFC2616 section 6.1
     # Status-Line = HTTP-Version SP Status-Code SP Reason-Phrase CRLF
@@ -97,19 +90,10 @@ class FTW::Response
   # Define the Message's start_line as status_line
   alias_method :start_line, :status_line
 
-  # Set the body of this response. In most cases this will be a FTW::Connection when
-  # Response objects are being created by a FTW::Agent. In Server cases,
-  # the body is likely to be a string or enumerable.
-  public
-  def body=(connection_or_string_or_enumerable)
-    @body = connection_or_string_or_enumerable
-  end # def body=
-
   # Read the body of this Response. The block is called with chunks of the
   # response as they are read in.
   #
   # This method is generally only called by http clients, not servers.
-  public
   def read_body(&block)
     if @body.respond_to?(:read)
       if headers.include?("Content-Length") and headers["Content-Length"].to_i > 0
@@ -169,11 +153,13 @@ class FTW::Response
   end # def read_body_chunked
 
   # Is this Response the result of a successful Upgrade request?
-  public
   def upgrade?
     return false unless status == 101 # "Switching Protocols"
     return false unless headers["Connection"] == "Upgrade"
     return true
   end # def upgrade?
+
+  public(:status=, :status, :reason, :initialize, :upgrade?, :redirect?,
+         :error?, :status_line, :read_body)
 end # class FTW::Response
 
