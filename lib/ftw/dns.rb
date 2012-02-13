@@ -1,9 +1,6 @@
 require "ftw/namespace"
 require "socket" # for Socket.gethostbyname
 
-# TODO(sissel): Switch to using Resolv::DNS since it lets you (the programmer)
-# choose dns configuration (servers, etc)
-#
 # I wrap whatever Ruby provides because it is historically very
 # inconsistent in implementation behavior across ruby platforms and versions.
 # In the future, this will probably implement the DNS protocol, but for now
@@ -12,14 +9,21 @@ require "socket" # for Socket.gethostbyname
 # I didn't really want to write a DNS library, but a consistent API and
 # behavior is necessary for my continued sanity :)
 class FTW::DNS
+  # TODO(sissel): Switch to using Resolv::DNS since it lets you (the programmer)
+  # choose dns configuration (servers, etc)
+
   V4_IN_V6_PREFIX = "0:" * 12
 
+  # Get a singleton instance of FTW::DNS
+  public
   def self.singleton
     @resolver ||= self.new
   end # def self.singleton
 
-  # This method is only intended to do A or AAAA lookups
-  # I may add PTR lookups later.
+  # Resolve a hostname.
+  #
+  # It will return an array of all known addresses for the host.
+  public
   def resolve(hostname)
     official, aliases, family, *addresses = Socket.gethostbyname(hostname)
     # We ignore family, here. Ruby will return v6 *and* v4 addresses in
@@ -35,6 +39,11 @@ class FTW::DNS
     end
   end # def resolve
 
+  # Resolve hostname and choose one of the results at random.
+  # 
+  # Use this method if you are connecting to a hostname that resolves to
+  # multiple addresses.
+  public
   def resolve_random(hostname)
     addresses = resolve(hostname)
     return addresses[rand(addresses.size)]

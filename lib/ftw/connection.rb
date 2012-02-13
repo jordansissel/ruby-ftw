@@ -10,10 +10,14 @@ require "backport-bij" # for Array#rotate, IO::WaitWritable, etc, in ruby < 1.9
 #
 # You can use IO::select on this objects of this type.
 # (at least, in MRI you can)
+#
+# You can activate SSL/TLS on this connection by invoking FTW::Connection#secure
 class FTW::Connection
   class ConnectTimeout < StandardError; end
   class ReadTimeout < StandardError; end
+  class WriteTimeout < StandardError; end
   include FTW::Poolable
+  include Cabin::Inspectable
 
   # A new network connection.
   # The 'destination' argument can be an array of strings or a single string.
@@ -47,10 +51,19 @@ class FTW::Connection
       @read_buffer.force_encoding("BINARY")
     end
 
+    @inspectables = [:@destinations, :@connected, :@remote_address, :@secure]
+    @connected = false
+    @remote_address = nil
+    @secure = false
+
     # TODO(sissel): Validate @destinations
     # TODO(sissel): Barf if a destination is not of the form "host:port"
   end # def initialize
 
+  # Connect now.
+  #
+  # Timeout value is optional. If no timeout is given, this method
+  # blocks until a connection is successful or an error occurs.
   public
   def connect(timeout=nil)
     # TODO(sissel): Raise if we're already connected?
@@ -61,7 +74,6 @@ class FTW::Connection
     # Do dns resolution on the host. If there are multiple
     # addresses resolved, return one at random.
     @remote_address = FTW::DNS.singleton.resolve_random(host)
-
     @logger.debug("Connecting", :address => @remote_address,
                   :host => host, :port => port)
 
@@ -97,6 +109,7 @@ class FTW::Connection
     end
 
     # We're now connected.
+    @connected = true
     return true
   end # def connect
 
@@ -109,14 +122,16 @@ class FTW::Connection
   # Write data to this connection.
   # This method blocks until the write succeeds unless a timeout is given.
   #
-  # Returns the number of bytes written (See IO#syswrite)
+  # This method is not guaranteed to have written the full data given.
+  #
+  # Returns the number of bytes written (See also IO#syswrite)
   public
   def write(data, timeout=nil)
     #connect if !connected?
     if writable?(timeout)
       return @socket.syswrite(data)
     else
-      raise Timeout::Error.new
+      raise FTW::Connection::WriteTimeout.new(self.inspect)
     end
   end # def write
 
@@ -164,19 +179,16 @@ class FTW::Connection
   public
   def disconnect(reason)
     begin 
-      #@reader_closed = true
       @socket.close_read
     rescue IOError => e
-      # Ignore
+      # Ignore, perhaps we shouldn't ignore.
     end
 
     begin 
       @socket.close_write
     rescue IOError => e
-      # Ignore
+      # Ignore, perhaps we shouldn't ignore.
     end
-
-    trigger(DISCONNECTED, reason)
   end # def disconnect
 
   # Is this connection writable? Returns true if it is writable within
@@ -200,18 +212,6 @@ class FTW::Connection
     return !ready.nil?
   end # def readable?
 
-  protected
-  def connected(address)
-    @remote_address = nil
-    @connected = true
-  end # def connected
-
-  protected
-  def disconnected(reason, error)
-    @remote_address = nil
-    @connected = false
-  end # def disconnected
-
   # The host:port
   public
   def peer
@@ -223,13 +223,6 @@ class FTW::Connection
   def to_io
     return @socket
   end # def to_io
-
-  # def inspect
-  public
-  def inspect
-    return "<#{self.class.name} destinations=#{@destinations.inspect}>"
-  end # def inspect
-  alias_method :inspect, :to_s
 
   # Secure this connection with TLS.
   public
@@ -246,10 +239,6 @@ class FTW::Connection
     sslcontext.verify_mode = OpenSSL::SSL::VERIFY_PEER
     # TODO(sissel): Try to be smart about setting this default.
     sslcontext.ca_path = "/etc/ssl/certs"
-    logit = lambda { |what| proc { |*args| @logger.info(what, :args => args) } }
-    sslcontext.methods.grep(/_cb=/).each do |what|
-      sslcontext.send("#{what}", logit.call(what))
-    end
     @socket = OpenSSL::SSL::SSLSocket.new(@socket, sslcontext)
 
     # SSLSocket#connect_nonblock will do the SSL/TLS handshake.
@@ -271,9 +260,6 @@ class FTW::Connection
       #
       # If the exception string is *not* 'read would block' we have a real
       # problem.
-      #if e.to_s != "read would block"
-        #raise e
-      #end
       
       if !timeout.nil?
         time_left = timeout - (Time.now - start)
@@ -285,7 +271,6 @@ class FTW::Connection
 
       # try connect_nonblock again if the socket is ready
       retry if r.size > 0 || w.size > 0
-      # otherwise, timed out.
     end
 
     @secure = true
@@ -296,6 +281,5 @@ class FTW::Connection
   def secured?
     return @secure
   end # def secured?
-
 end # class FTW::Connection
 
