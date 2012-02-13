@@ -67,7 +67,7 @@ class FTW::Connection
   public
   def connect(timeout=nil)
     # TODO(sissel): Raise if we're already connected?
-    close if connected?
+    disconnect("reconnecting") if connected?
     host, port = @destinations.first.split(":")
     @destinations = @destinations.rotate # round-robin
 
