@@ -65,6 +65,9 @@ class FTW::Agent
   end # def upgrade
 
   # Make a new websocket connection
+  # This will send the http request. If the websocket handshake
+  # is successful, a FTW::WebSocket instance will be returned.
+  # Otherwise, a FTW::Response will be returned.
   public
   def websocket!(uri, options={})
     req = request("GET", uri, options)
@@ -73,12 +76,20 @@ class FTW::Agent
     if ws.handshake_ok?(response)
       # response.body is a FTW::Connection
       ws.connection = response.body
-      p response.body.read
+
+      # There seems to be a bug in http_parser.rb where websocket
+      # responses lead with a newline for some reason. Work around it.
+      data = response.body.read
+      if data[0] == "\n"
+        response.body.pushback(data[1..-1])
+      else
+        response.body.pushback(data)
+      end
       return ws
     else
       return response
     end
-  end # def websocket
+  end # def websocket!
 
   public
   def request(method, uri, options)

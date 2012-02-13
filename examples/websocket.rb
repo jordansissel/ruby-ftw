@@ -12,4 +12,9 @@ uri = Addressable::URI.parse("ws://127.0.0.1:8081/hello")
 #})
 #puts response
 
-p agent.websocket!(uri)
+ws = agent.websocket!(uri)
+#ws.instance_eval { p @connection.read }
+ws.publish("Fizzle")
+ws.each do |payload|
+  p :payload => payload
+end

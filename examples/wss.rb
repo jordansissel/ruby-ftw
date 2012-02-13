@@ -9,7 +9,9 @@ EventMachine.run do
       puts "WebSocket connection open"
 
       # publish message to the client
-      ws.send "Hello Client"
+      EM::PeriodicTimer.new(3) do
+        ws.send "Hello Client"
+      end
     end
 
     ws.onclose { puts "Connection closed" }
