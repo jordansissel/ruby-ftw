@@ -1,3 +1,6 @@
+# This example uses the 'cabin' log library.
+#
+# Logs will appear on stdout and also be shipped to over websocket server.
 require "rubygems"
 require "cabin"
 require "thread"
@@ -7,7 +10,6 @@ $: << File.join(File.dirname(__FILE__), "..", "lib")
 require "ftw"
 
 agent = FTW::Agent.new
-
 logger = Cabin::Channel.new
 queue = Queue.new
 
@@ -17,6 +19,9 @@ logger.subscribe(Logger.new(STDOUT))
 
 # Start a thread that takes events from the queue and pushes
 # them in JSON format over a websocket.
+#
+# Logging to a queue and processing separately ensures logging does not block
+# the main application.
 Thread.new do
   ws = agent.websocket!("http://127.0.0.1:8081/")
   if ws.is_a?(FTW::Response)
