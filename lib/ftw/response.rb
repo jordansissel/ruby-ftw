@@ -113,7 +113,6 @@ class FTW::Response
 
   # Read the length bytes from the body. Yield each chunk read to the block
   # given. This method is generally only called by http clients, not servers.
-  private
   def read_body_length(length, &block)
     remaining = length
     while remaining > 0
@@ -132,7 +131,6 @@ class FTW::Response
   end # def read_body_length
 
   # This is kind of messed, need to fix it.
-  private
   def read_body_chunked(&block)
     parser = HTTP::Parser.new
 
