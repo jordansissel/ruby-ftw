@@ -62,3 +62,6 @@ I do not plan on exposing any direct means for invoking SPDY.
 ## Server API
 
 TBD. Will likely surround 'rack' somehow.
+
+It's possible the 'cramp' gem supports all the server-side features we need
+(except for SPDY, I suppose, which I might be able to contribute upstream)
