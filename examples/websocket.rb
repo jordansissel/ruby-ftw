@@ -13,8 +13,7 @@ uri = Addressable::URI.parse("ws://127.0.0.1:8081/hello")
 #puts response
 
 ws = agent.websocket!(uri)
-#ws.instance_eval { p @connection.read }
-ws.publish("Fizzle")
+ws.publish({ :foo => :bar}.to_json)
 ws.each do |payload|
   p :payload => payload
 end
