@@ -1,10 +1,11 @@
-require "ftw/namespace"
-require "ftw/http/message"
-require "ftw/response"
 require "addressable/uri" # gem addressable
-require "uri" # ruby stdlib
-require "http/parser" # gem http_parser.rb
+require "cabin" # gem cabin
 require "ftw/crlf"
+require "ftw/http/message"
+require "ftw/namespace"
+require "ftw/response"
+require "http/parser" # gem http_parser.rb
+require "uri" # ruby stdlib
 
 # An HTTP Request.
 #
@@ -12,6 +13,7 @@ require "ftw/crlf"
 class FTW::Request
   include FTW::HTTP::Message
   include FTW::CRLF
+  include Cabin::Inspectable
 
   # The http method. Like GET, PUT, POST, etc..
   # RFC2616 5.1.1 - <http://tools.ietf.org/html/rfc2616#section-5.1.1>
@@ -42,6 +44,9 @@ class FTW::Request
   # Usually 'http' or 'https' or perhaps 'spdy' maybe?
   attr_accessor :protocol
 
+  # Make a new request with a uri if given.
+  #
+  # The uri is used to set the address, protocol, Host header, etc.
   public
   def initialize(uri=nil)
     super()
@@ -51,15 +56,16 @@ class FTW::Request
     use_uri(uri) if !uri.nil?
   end # def initialize
 
-  # Set the connection to use for this request.
-  public
-  def connection=(connection)
-    @connection = connection
-  end # def connection=
-
-  # EXTERMINATE .. err.. execute this request on a connection.
+  # Execute this request on a given connection: Writes the request, returns a
+  # Response object.
   #
-  # Writes the request, returns a Response object.
+  # This method will block until the HTTP response header has been completely
+  # received. The body will not have been read yet at the time of this
+  # method's return.
+  #
+  # The 'connection' should be a FTW::Connection instance, but it might work
+  # with a normal IO object.
+  #
   public
   def execute(connection)
     tries = 3
@@ -109,10 +115,7 @@ class FTW::Request
     return response
   end # def execute
 
-  # TODO(sissel): Methods to write:
-  # 1. Parsing a request, use HTTP::Parser from http_parser.rb
-  # 2. Building a request from a URI or Addressable::URI
-
+  # Use a URI to help fill in parts of this Request.
   public
   def use_uri(uri)
     # Convert URI objects to Addressable::URI
@@ -121,11 +124,8 @@ class FTW::Request
         uri = Addressable::URI.parse(uri.to_s)
     end
 
-    # TODO(sissel): Use normalized versions of these fields?
-    # uri.host
-    # uri.port
-    # uri.scheme
-    # uri.path
+    # TODO(sissel): Use uri.password and uri.user to set Authorization basic
+    # stuff.
     # uri.password
     # uri.user
     @request_uri = uri.path

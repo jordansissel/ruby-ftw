@@ -1,6 +1,6 @@
-
 require "ftw/namespace"
 
+# A poolable mixin. This is for use with the FTW::Pool class.
 module FTW::Poolable
   # Mark that this resource is in use
   def mark

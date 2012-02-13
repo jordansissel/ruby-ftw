@@ -24,6 +24,8 @@ class FTW::WebSocket
   # 2. http handshake (RFC6455 section 4)
   # 3. websocket protocol
 
+  # Creates a new websocket and fills in the given http request with any
+  # necessary settings.
   public
   def initialize(request)
     @key_nonce = generate_key_nonce
@@ -32,11 +34,17 @@ class FTW::WebSocket
     @parser = FTW::WebSocket::Parser.new
   end # def initialize
 
+  # Set the connection for this websocket. This is usually invoked by FTW::Agent
+  # after the websocket upgrade and handshake have been successful.
+  #
+  # You probably don't call this yourself.
   public
   def connection=(connection)
     @connection = connection
   end # def connection=
 
+  # Prepare the request. This sets any required headers and attributes as
+  # specified by RFC6455
   private
   def prepare(request)
     # RFC6455 section 4.1:
@@ -64,6 +72,7 @@ class FTW::WebSocket
     # TODO(sissel): Any other headers like cookies, auth headers, are allowed.
   end # def prepare
 
+  # Generate a websocket key nonce.
   private
   def generate_key_nonce
     # RFC6455 section 4.1 says:
@@ -85,6 +94,7 @@ class FTW::WebSocket
     return Base64.strict_encode64(OpenSSL::Random.random_bytes(16))
   end # def generate_key_nonce
 
+  # Is this Response acceptable for our WebSocket Upgrade request?
   public
   def handshake_ok?(response)
     # See RFC6455 section 4.2.2
@@ -101,11 +111,14 @@ class FTW::WebSocket
     return true
   end # def handshake_ok?
 
-  # Each message...
+  # Iterate over each WebSocket message. This method will run forever unless you
+  # break from it. 
+  #
+  # The text payload of each message will be yielded to the block.
   public
   def each(&block)
     loop do
-      payload = (@parser.feed(@connection.read))
+      payload = @parser.feed(@connection.read)
       next if payload.nil?
       yield payload
     end
@@ -132,6 +145,9 @@ class FTW::WebSocket
     return masked.pack("C*")
   end # def mask
 
+  # Publish a message text.
+  #
+  # This will send a websocket text frame over the connection.
   public
   def publish(message)
     # TODO(sissel): Support server and client modes.

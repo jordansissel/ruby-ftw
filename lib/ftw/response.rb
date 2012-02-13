@@ -3,6 +3,9 @@ require "ftw/http/message"
 require "cabin" # gem cabin
 require "http/parser" # gem http_parser.rb
 
+# An HTTP Response.
+#
+# See RFC2616 section 6: <http://tools.ietf.org/html/rfc2616#section-6>
 class FTW::Response 
   include FTW::HTTP::Message
 
@@ -48,6 +51,7 @@ class FTW::Response
 
   attr_accessor :body
 
+  # Create a new Response.
   public
   def initialize
     super
@@ -93,11 +97,18 @@ class FTW::Response
   # Define the Message's start_line as status_line
   alias_method :start_line, :status_line
 
+  # Set the body of this response. In most cases this will be a FTW::Connection when
+  # Response objects are being created by a FTW::Agent. In Server cases,
+  # the body is likely to be a string or enumerable.
   public
-  def body=(connection_or_string)
-    @body = connection_or_string
+  def body=(connection_or_string_or_enumerable)
+    @body = connection_or_string_or_enumerable
   end # def body=
 
+  # Read the body of this Response. The block is called with chunks of the
+  # response as they are read in.
+  #
+  # This method is generally only called by http clients, not servers.
   public
   def read_body(&block)
     if @body.respond_to?(:read)
@@ -117,8 +128,8 @@ class FTW::Response
   end # def read_body
 
   # Read the length bytes from the body. Yield each chunk read to the block
-  # given.
-  public
+  # given. This method is generally only called by http clients, not servers.
+  private
   def read_body_length(length, &block)
     remaining = length
     while remaining > 0
@@ -137,7 +148,7 @@ class FTW::Response
   end # def read_body_length
 
   # This is kind of messed, need to fix it.
-  public
+  private
   def read_body_chunked(&block)
     parser = HTTP::Parser.new
 
@@ -157,16 +168,12 @@ class FTW::Response
     end
   end # def read_body_chunked
 
+  # Is this Response the result of a successful Upgrade request?
   public
   def upgrade?
     return false unless status == 101 # "Switching Protocols"
     return false unless headers["Connection"] == "Upgrade"
-    #return false unless headers["Upgrade"] == "websocket"
     return true
-  end # def upgrade
-
-  # TODO(sissel): Methods to write:
-  # 1. Parsing a request, use HTTP::Parser from http_parser.rb
-  # 2. Building a request from a URI or Addressable::URI
+  end # def upgrade?
 end # class FTW::Response
 
