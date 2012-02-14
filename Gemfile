@@ -7,4 +7,8 @@ gem "addressable", "2.2.6"  # because stdlib URI is terrible
 gem "backport-bij", "1.0.1" # for hacking stuff in to ruby <1.9
 gem "minitest" # for unit tests, latest of this is fine
 
-gem "simplecov", :group => :test
+
+group :testing do
+  gem "simplecov"
+  gem "yard"
+end

@@ -15,6 +15,7 @@ GEM
       multi_json (~> 1.0.3)
       simplecov-html (~> 0.5.3)
     simplecov-html (0.5.3)
+    yard (0.7.5)
 
 PLATFORMS
   java
@@ -28,3 +29,4 @@ DEPENDENCIES
   json (= 1.6.5)
   minitest
   simplecov
+  yard
