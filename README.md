@@ -61,7 +61,18 @@ I do not plan on exposing any direct means for invoking SPDY.
 
 ## Server API
 
-TBD. Will likely surround 'rack' somehow.
+TBD. Will likely surround 'rack'. Need to find out what servers actually can
+support HTTP Upgrade.
 
 It's possible the 'cramp' gem supports all the server-side features we need
 (except for SPDY, I suppose, which I might be able to contribute upstream)
+
+## Other Projects
+
+Here are some related projects that I have no affiliation with:
+
+* https://github.com/igrigorik/em-websocket - websocket server for eventmachine
+* https://github.com/faye/faye - pubsub for the web (includes a websockets implementation)
+* https://github.com/lifo/cramp - real-time web framework (async, websockets)
+* https://github.com/igrigorik/em-http-request - HTTP client for EventMachine
+* https://github.com/geemus/excon - http client library
