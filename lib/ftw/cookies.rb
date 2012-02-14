@@ -52,9 +52,9 @@ class FTW::Cookies
             # TODO(sissel): Parse the Max-Age value and convert it to 'expires'
             #extra[:expires] = 
           when /^Domain=/
-            extra[:domain] = attr[7:]
+            extra[:domain] = attr[7..-1]
           when /^Path=/
-            extra[:path] = attr[5:]
+            extra[:path] = attr[5..-1]
           when /^Secure/
             extra[:secure] = true
           when /^HttpOnly/
