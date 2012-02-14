@@ -9,6 +9,13 @@ require "logger"
 $: << File.join(File.dirname(__FILE__), "..", "lib")
 require "ftw"
 
+if ARGV.length != 1
+  $stderr.puts "Usage: #{$0} <websocket-url>"
+  exit 1
+end
+
+url = ARGV[0]
+
 agent = FTW::Agent.new
 logger = Cabin::Channel.new
 queue = Queue.new
@@ -23,7 +30,7 @@ logger.subscribe(Logger.new(STDOUT))
 # Logging to a queue and processing separately ensures logging does not block
 # the main application.
 Thread.new do
-  ws = agent.websocket!("http://127.0.0.1:8081/")
+  ws = agent.websocket!(url)
   if ws.is_a?(FTW::Response)
     puts "WebSocket handshake failed. Here's the HTTP response:"
     puts ws
