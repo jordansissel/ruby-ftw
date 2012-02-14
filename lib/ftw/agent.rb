@@ -95,6 +95,8 @@ class FTW::Agent
   # This will send the http request. If the websocket handshake
   # is successful, a FTW::WebSocket instance will be returned.
   # Otherwise, a FTW::Response will be returned.
+  #
+  # See {#request} for what the 'uri' and 'options' parameters should be.
   def websocket!(uri, options={})
     # TODO(sissel): Use FTW::Agent#upgrade! ?
     req = request("GET", uri, options)
@@ -105,9 +107,10 @@ class FTW::Agent
       ws.connection = response.body
 
       # TODO(sissel): Investigate this bug
-      # There seems to be a bug in http_parser.rb (or in this library) where
-      # websocket responses lead with a newline for some reason. Work around
-      # it.
+      # There seems to be a bug in http_parser.rb (or maybe in this library)
+      # where websocket responses lead with a newline for some reason. 
+      # It's like the header terminator CRLF still has the LF character left
+      # in the buffer. Work around it.
       data = response.body.read
       if data[0] == "\n"
         response.body.pushback(data[1..-1])
