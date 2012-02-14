@@ -16,24 +16,29 @@ class FTW::HTTP::Headers
   include Enumerable
   include FTW::CRLF
 
-  # Make a new headers container. You can pass a hash of 
-  public
+  private
+
+  # Make a new headers container.
+  #
+  # @param [Hash, optional] a hash of headers to start with.
   def initialize(headers={})
     super()
-    @version = 1.1
     @headers = headers
   end # def initialize
 
   # Set a header field to a specific value.
   # Any existing value(s) for this field are destroyed.
+  #
+  # @param [String] the name of the field to set
+  # @param [String or Array] the value of the field to set
   def set(field, value)
     @headers[field.downcase] = value
   end # def set
 
   alias_method :[]=, :set
 
-  # Set a header field to a specific value.
-  # Any existing value(s) for this field are destroyed.
+  # Does this header include this field name?
+  # @return [true, false]
   def include?(field)
     @headers.include?(field.downcase)
   end # def include?
@@ -93,9 +98,9 @@ class FTW::HTTP::Headers
 
   # Get a field value. 
   # 
-  # This will return:
-  #   * String if there is only a single value for this field
-  #   * Array of String if there are multiple values for this field
+  # @return [String] if there is only one value for this field
+  # @return [Array] if there are multiple values for this field
+  # @return [nil] if there are no values for this field
   def get(field)
     field = field.downcase
     return @headers[field]
@@ -119,18 +124,33 @@ class FTW::HTTP::Headers
     end
   end # end each
 
-  public
+  # @return [Hash] String keys and values of String (field value) or Array (of String field values)
   def to_hash
     return @headers
   end # def to_hash
 
-  public
+  # Serialize this object to a string in HTTP format described by RFC2616
+  #
+  # Example:
+  #
+  #     headers = FTW::HTTP::Headers.new
+  #     headers.add("Host", "example.com")
+  #     headers.add("X-Forwarded-For", "1.2.3.4")
+  #     headers.add("X-Forwarded-For", "192.168.0.1")
+  #     puts headers.to_s
+  #
+  #     # Result
+  #     Host: example.com
+  #     X-Forwarded-For: 1.2.3.4
+  #     X-Forwarded-For: 192.168.0.1
   def to_s
     return @headers.collect { |name, value| "#{name}: #{value}" }.join(CRLF) + CRLF
   end # def to_s
   
-  public
+  # Inspect this object
   def inspect
     return "#{self.class.name} <#{to_hash.inspect}>"
   end # def inspect
+
+  public(:set, :[]=, :include?, :add, :remove, :get, :[], :each, :to_hash, :to_s, :inspect)
 end # class FTW::HTTP::Headers

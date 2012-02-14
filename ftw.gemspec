@@ -14,8 +14,8 @@ Gem::Specification.new do |spec|
 
   spec.name = "ftw"
   spec.version = FTW::VERSION
-  spec.summary = "For The Web. HTTP, WebSockets, SPDY, etc."
-  spec.description = "Trying to build a solid and sane API for client and server web stuff."
+  spec.description = "For The Web. Trying to build a solid and sane API for client and server web stuff. Client and Server operations for HTTP, WebSockets, SPDY, etc."
+  spec.summary = spec.description
   spec.license = "Apache License (2.0)"
 
   gem "json", "1.6.5" # for json

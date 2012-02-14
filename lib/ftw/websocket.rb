@@ -4,6 +4,7 @@ require "base64" # stdlib
 require "digest/sha1" # stdlib
 require "cabin"
 require "ftw/websocket/parser"
+require "ftw/crlf"
 
 # WebSockets, RFC6455.
 #
@@ -19,6 +20,8 @@ class FTW::WebSocket
 
   WEBSOCKET_ACCEPT_UUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
+  private
+
   # Protocol phases
   # 1. tcp connect
   # 2. http handshake (RFC6455 section 4)
@@ -26,7 +29,6 @@ class FTW::WebSocket
 
   # Creates a new websocket and fills in the given http request with any
   # necessary settings.
-  public
   def initialize(request)
     @key_nonce = generate_key_nonce
     @request = request
@@ -38,14 +40,12 @@ class FTW::WebSocket
   # after the websocket upgrade and handshake have been successful.
   #
   # You probably don't call this yourself.
-  public
   def connection=(connection)
     @connection = connection
   end # def connection=
 
   # Prepare the request. This sets any required headers and attributes as
   # specified by RFC6455
-  private
   def prepare(request)
     # RFC6455 section 4.1:
     #  "2.   The method of the request MUST be GET, and the HTTP version MUST
@@ -73,7 +73,6 @@ class FTW::WebSocket
   end # def prepare
 
   # Generate a websocket key nonce.
-  private
   def generate_key_nonce
     # RFC6455 section 4.1 says:
     # ---
@@ -95,7 +94,6 @@ class FTW::WebSocket
   end # def generate_key_nonce
 
   # Is this Response acceptable for our WebSocket Upgrade request?
-  public
   def handshake_ok?(response)
     # See RFC6455 section 4.2.2
     return false unless response.status == 101 # "Switching Protocols"
@@ -115,7 +113,6 @@ class FTW::WebSocket
   # break from it. 
   #
   # The text payload of each message will be yielded to the block.
-  public
   def each(&block)
     loop do
       payload = @parser.feed(@connection.read)
@@ -133,7 +130,6 @@ class FTW::WebSocket
   #   message[3] ^ key[3]
   #   message[4] ^ key[0]
   #   ...
-  private
   def mask(message, key)
     masked = []
     mask_bytes = key.unpack("C4")
@@ -148,7 +144,6 @@ class FTW::WebSocket
   # Publish a message text.
   #
   # This will send a websocket text frame over the connection.
-  public
   def publish(message)
     # TODO(sissel): Support server and client modes.
     # Server MUST NOT mask. Client MUST mask.
@@ -190,5 +185,7 @@ class FTW::WebSocket
       @connection.write(data.pack(pack))
     end
   end # def publish
+
+  public(:initialize, :connection=, :handshake_ok?, :each, :publish)
 end # class FTW::WebSocket
 

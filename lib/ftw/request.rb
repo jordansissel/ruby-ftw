@@ -15,6 +15,8 @@ class FTW::Request
   include FTW::CRLF
   include Cabin::Inspectable
 
+  private
+
   # The http method. Like GET, PUT, POST, etc..
   # RFC2616 5.1.1 - <http://tools.ietf.org/html/rfc2616#section-5.1.1>
   #
@@ -47,7 +49,6 @@ class FTW::Request
   # Make a new request with a uri if given.
   #
   # The uri is used to set the address, protocol, Host header, etc.
-  public
   def initialize(uri=nil)
     super()
     @port = 80
@@ -66,7 +67,6 @@ class FTW::Request
   # The 'connection' should be a FTW::Connection instance, but it might work
   # with a normal IO object.
   #
-  public
   def execute(connection)
     tries = 3
     begin
@@ -116,7 +116,6 @@ class FTW::Request
   end # def execute
 
   # Use a URI to help fill in parts of this Request.
-  public
   def use_uri(uri)
     # Convert URI objects to Addressable::URI
     case uri
@@ -142,7 +141,6 @@ class FTW::Request
 
   # Set the method for this request. Usually something like "GET" or "PUT"
   # etc. See <http://tools.ietf.org/html/rfc2616#section-5.1.1>
-  public
   def method=(method)
     # RFC2616 5.1.1 doesn't say the method has to be uppercase.
     # It can be any 'token' besides the ones defined in section 5.1.1:
@@ -163,4 +161,8 @@ class FTW::Request
 
   # Define the Message's start_line as request_line
   alias_method :start_line, :request_line
+
+  public(:method, :method=, :request_uri, :request_uri=, :path, :port, :port=,
+         :protocol, :protocol=, :execute, :use_uri, :request_line, :start_line)
+
 end # class FTW::Request < Message

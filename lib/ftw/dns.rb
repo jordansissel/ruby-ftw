@@ -15,15 +15,15 @@ class FTW::DNS
   V4_IN_V6_PREFIX = "0:" * 12
 
   # Get a singleton instance of FTW::DNS
-  public
   def self.singleton
     @resolver ||= self.new
   end # def self.singleton
 
+  private
+
   # Resolve a hostname.
   #
   # It will return an array of all known addresses for the host.
-  public
   def resolve(hostname)
     official, aliases, family, *addresses = Socket.gethostbyname(hostname)
     # We ignore family, here. Ruby will return v6 *and* v4 addresses in
@@ -43,18 +43,15 @@ class FTW::DNS
   # 
   # Use this method if you are connecting to a hostname that resolves to
   # multiple addresses.
-  public
   def resolve_random(hostname)
     addresses = resolve(hostname)
     return addresses[rand(addresses.size)]
   end # def resolve_random
 
-  private
   def unpack_v4(address)
     return address.unpack("C4").join(".")
   end # def unpack_v4
 
-  private
   def unpack_v6(address)
     if address.length == 16
       # Unpack 16 bit chunks, convert to hex, join with ":"
@@ -68,4 +65,6 @@ class FTW::DNS
       "::" + unpack_v4(address)
     end
   end # def unpack_v6
+
+  public(:resolve, :resolve_random)
 end # class FTW::DNS

@@ -19,6 +19,8 @@ class FTW::Connection
   include FTW::Poolable
   include Cabin::Inspectable
 
+  private
+
   # A new network connection.
   # The 'destination' argument can be an array of strings or a single string.
   # String format is expected to be "host:port"
@@ -29,7 +31,6 @@ class FTW::Connection
   #
   # If you specify multiple destinations, they are used in a round-robin
   # decision made during reconnection.
-  public
   def initialize(destinations)
     if destinations.is_a?(String)
       @destinations = [destinations]
@@ -64,7 +65,6 @@ class FTW::Connection
   #
   # Timeout value is optional. If no timeout is given, this method
   # blocks until a connection is successful or an error occurs.
-  public
   def connect(timeout=nil)
     # TODO(sissel): Raise if we're already connected?
     disconnect("reconnecting") if connected?
@@ -114,7 +114,6 @@ class FTW::Connection
   end # def connect
 
   # Is this Connection connected?
-  public
   def connected?
     return @connected
   end # def connected?
@@ -125,7 +124,6 @@ class FTW::Connection
   # This method is not guaranteed to have written the full data given.
   #
   # Returns the number of bytes written (See also IO#syswrite)
-  public
   def write(data, timeout=nil)
     #connect if !connected?
     if writable?(timeout)
@@ -140,7 +138,6 @@ class FTW::Connection
   #
   # This method is not guaranteed to read exactly 'length' bytes. See
   # IO#sysread
-  public
   def read(timeout=nil)
     data = ""
     data.force_encoding("BINARY") if data.respond_to?(:force_encoding)
@@ -170,13 +167,11 @@ class FTW::Connection
   end # def read
 
   # Push back some data onto the connection's read buffer.
-  public
   def pushback(data)
     @pushback_buffer << data
   end # def pushback
 
   # End this connection, specifying why.
-  public
   def disconnect(reason)
     begin 
       @socket.close_read
@@ -195,7 +190,6 @@ class FTW::Connection
   # the timeout period. False otherwise.
   #
   # The time out is in seconds. Fractional seconds are OK.
-  public
   def writable?(timeout)
     ready = IO.select(nil, [@socket], nil, timeout)
     return !ready.nil?
@@ -205,7 +199,6 @@ class FTW::Connection
   # the timeout period. False otherwise.
   #
   # The time out is in seconds. Fractional seconds are OK.
-  public
   def readable?(timeout)
     #return false if @reader_closed
     ready = IO.select([@socket], nil, nil, timeout)
@@ -213,19 +206,16 @@ class FTW::Connection
   end # def readable?
 
   # The host:port
-  public
   def peer
     return @remote_address
   end # def peer
 
   # Support 'to_io' so you can use IO::select on this object.
-  public
   def to_io
     return @socket
   end # def to_io
 
   # Secure this connection with TLS.
-  public
   def secure(timeout=nil, options={})
     # Skip this if we're already secure.
     return if secured?
@@ -277,9 +267,11 @@ class FTW::Connection
   end # def secure
 
   # Has this connection been secured?
-  public
   def secured?
     return @secure
   end # def secured?
+
+  public(:connect, :connected?, :write, :read, :pushback, :disconnect,
+         :writable?, :readable?, :peer, :to_io, :secure, :secured?)
 end # class FTW::Connection
 

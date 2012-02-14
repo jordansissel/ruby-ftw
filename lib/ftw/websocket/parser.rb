@@ -22,11 +22,28 @@ require "ftw/websocket"
 #    + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
 #    |                     Payload Data continued ...                |
 #    +---------------------------------------------------------------+
+#
+# Example use:
+#
+#     socket = FTW::Connection.new("example.com:80")
+#     parser = FTW::WebSocket::Parser.new
+#     # ... do HTTP Upgrade request to websockets
+#     loop do
+#       data = socket.sysread(4096)
+#       payload = parser.feed(data)
+#       if payload
+#         # We got a full websocket frame, print the payload.
+#         p :payload => payload
+#       end
+#     end
+#
 class FTW::WebSocket::Parser
   # XXX: Implement control frames: http://tools.ietf.org/html/rfc6455#section-5.5
 
   # States are based on the minimal unit of 'byte'
   STATES = [ :flags_and_opcode, :mask_and_payload_init, :payload_length, :payload ]
+
+  private
 
   # A new WebSocket protocol parser.
   def initialize
@@ -42,7 +59,6 @@ class FTW::WebSocket::Parser
   end # def initialize
 
   # Transition to a specified state and set the next required read length.
-  private
   def transition(state, next_length)
     @logger.debug("Transitioning", :transition => state, :nextlen => next_length)
     @state = state
@@ -53,7 +69,9 @@ class FTW::WebSocket::Parser
   # 
   # Currently, it will return the raw payload of websocket messages.
   # Otherwise, it returns nil if no complete message has yet been consumed.
-  public
+  #
+  # @param [String] the string data to feed into the parser. 
+  # @return [String, nil] the websocket message payload, if any, nil otherwise.
   def feed(data)
     @buffer << data
     while have?(@need)
@@ -66,13 +84,11 @@ class FTW::WebSocket::Parser
   end # def <<
 
   # Do we have at least 'length' bytes in the buffer?
-  private
   def have?(length)
     return length <= @buffer.size 
   end # def have?
 
   # Get 'length' string from the buffer.
-  private
   def get(length=nil)
     length = @need if length.nil?
     data = @buffer[0 ... length]
@@ -81,14 +97,12 @@ class FTW::WebSocket::Parser
   end # def get
 
   # Set the minimum number of bytes we need in the buffer for the next read.
-  private
   def need(length)
     @need = length
   end # def need
 
   # State: Flags (fin, etc) and Opcode. 
   # See: http://tools.ietf.org/html/rfc6455#section-5.3
-  private
   def flags_and_opcode
     #     0              
     #     0 1 2 3 4 5 6 7
@@ -112,7 +126,6 @@ class FTW::WebSocket::Parser
 
   # State: mask_and_payload_init
   # See: http://tools.ietf.org/html/rfc6455#section-5.2
-  private
   def mask_and_payload_init
     byte = get.bytes.first
     @mask = byte & 0x80 # first bit (msb)
@@ -136,7 +149,6 @@ class FTW::WebSocket::Parser
   # This is the 'extended payload length' with support for both 16 
   # and 64 bit lengths.
   # See: http://tools.ietf.org/html/rfc6455#section-5.2
-  private
   def payload_length
     #     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     #    +-+-+-+-+-------+-+-------------+-------------------------------+
@@ -169,7 +181,6 @@ class FTW::WebSocket::Parser
   # Read the full payload and return it.
   # See: http://tools.ietf.org/html/rfc6455#section-5.3
   #
-  private
   def payload
     # TODO(sissel): Handle massive payload lengths without exceeding memory.
     # Perhaps if the payload is large (say, larger than 500KB by default),
@@ -180,4 +191,6 @@ class FTW::WebSocket::Parser
     transition(:flags_and_opcode, 1)
     return data
   end # def payload
+
+  public(:feed)
 end # class FTW::WebSocket::Parser
