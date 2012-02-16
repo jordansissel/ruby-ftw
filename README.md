@@ -21,6 +21,7 @@ Desired features:
 * HTTP and SPDY support.
 * WebSockets support.
 * SSL/TLS support.
+* Browser Agent features like cookies and caching
 * An API that lets me do what I need.
 * Server and Client modes.
 * Support for both normal operation and EventMachine would be nice.
