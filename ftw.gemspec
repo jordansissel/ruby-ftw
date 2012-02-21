@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
   gem "cabin", ">0" # for logging, latest is fine for now
   gem "http_parser.rb", "0.5.3" # for http request/response parsing
   gem "addressable", "2.2.6"  # because stdlib URI is terrible
-  gem "backport-bij", "1.0.1" # for hacking stuff in to ruby <1.9
+  gem "backports", "2.3.0" # for hacking stuff into ruby <1.9
   gem "minitest", ">0" # for unit tests, latest of this is fine
 
 
