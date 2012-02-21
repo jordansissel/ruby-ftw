@@ -17,7 +17,8 @@ end
 dirname = File.dirname(__FILE__)
 use File.join(dirname, "docs.rb")
 
-glob = File.join(dirname, "ftw", "**", "*.rb")
+# Load tests from ./*/**/*.rb (usually ./libraryname/....)
+glob = File.join(dirname, "*", "**", "*.rb")
 Dir.glob(glob).each do |path|
   use path
 end
