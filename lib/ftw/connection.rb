@@ -4,7 +4,7 @@ require "ftw/poolable"
 require "ftw/namespace"
 require "socket"
 require "timeout" # ruby stdlib, just for the Timeout exception.
-require "backport-bij" # for Array#rotate, IO::WaitWritable, etc, in ruby < 1.9
+require "backport" # for Array#rotate, IO::WaitWritable, etc, in ruby < 1.9
 
 # A network connection. This is TCP.
 #
@@ -13,11 +13,17 @@ require "backport-bij" # for Array#rotate, IO::WaitWritable, etc, in ruby < 1.9
 #
 # You can activate SSL/TLS on this connection by invoking FTW::Connection#secure
 class FTW::Connection
-  class ConnectTimeout < StandardError; end
-  class ReadTimeout < StandardError; end
-  class WriteTimeout < StandardError; end
   include FTW::Poolable
   include Cabin::Inspectable
+
+  # A connection timed out
+  class ConnectTimeout < StandardError; end
+
+  # A read timed out
+  class ReadTimeout < StandardError; end
+
+  # A write timed out
+  class WriteTimeout < StandardError; end
 
   private
 

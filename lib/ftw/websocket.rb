@@ -16,16 +16,19 @@ class FTW::WebSocket
   include FTW::CRLF
   include Cabin::Inspectable
 
+  # The frame identifier for a 'text' frame
   TEXTFRAME = 0x0001
 
+  # Search RFC6455 for this string and you will find its definitions.
+  # It is used in servers accepting websocket upgrades.
   WEBSOCKET_ACCEPT_UUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
-
-  private
 
   # Protocol phases
   # 1. tcp connect
   # 2. http handshake (RFC6455 section 4)
   # 3. websocket protocol
+
+  private
 
   # Creates a new websocket and fills in the given http request with any
   # necessary settings.
