@@ -48,10 +48,12 @@ class FTW::DNS
     return addresses[rand(addresses.size)]
   end # def resolve_random
 
+  # Unserialize a 4-byte ipv4 address into a human-readable a.b.c.d string
   def unpack_v4(address)
     return address.unpack("C4").join(".")
   end # def unpack_v4
 
+  # Unserialize a 16-byte ipv6 address into a human-readable a:b:c:...:d string
   def unpack_v6(address)
     if address.length == 16
       # Unpack 16 bit chunks, convert to hex, join with ":"

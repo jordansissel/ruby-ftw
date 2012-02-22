@@ -20,12 +20,16 @@ class FTW::Cookies
 
     # TODO(sissel): Support 'extension-av' ? RFC6265 section 4.1.1
     # extension-av      = <any CHAR except CTLs or ";">
-    
+ 
+    # List of standard cookie attributes
+    STANDARD_ATTRIBUTES = [:domain, :path, :comment, :expires, :secure, :httponly]
+
+    # A new cookie. Value and attributes are optional.
     def initialize(name, value=nil, attributes={})
       @name = name
       @value = value
       
-      [:domain, :path, :comment, :expires, :secure, :httponly].each do |iv|
+      STANDARD_ATTRIBUTES.each do |iv|
         instance_variable_set("@#{iv.to_s}", attributes.delete(iv))
       end
 
@@ -68,20 +72,24 @@ class FTW::Cookies
     end # def Cookie.parse
   end # class Cookie
 
+  # A new cookies store
   def initialize
     @cookies = []
   end # def initialize
 
+  # Add a cookie 
   def add(name, value=nil, attributes={})
     cookie = Cookie.new(name, value, attributes)
     @cookies << cookie
   end # def add
 
+  # Add a cookie from a header 'Set-Cookie' value
   def add_from_header(set_cookie_string)
     cookie = Cookie.parse(set_cookie_string)
     @cookies << cookie
   end # def add_from_header
 
+  # Get cookies for a URL
   def for_url(url)
     # TODO(sissel): only return cookies that are valid for the url
     return @cookies
