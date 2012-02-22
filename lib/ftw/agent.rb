@@ -35,6 +35,7 @@ require "logger"
 #
 # TODO(sissel): TBD: implement cookies... delicious chocolate chip cookies.
 class FTW::Agent
+  # List of standard HTTP methods described in RFC2616
   STANDARD_METHODS = %w(options get head post put delete trace connect)
 
   # Everything is private by default.
@@ -161,7 +162,7 @@ class FTW::Agent
   #
   # Redirects are always followed.
   #
-  # @params
+  # @param [FTW::Request]
   # @return [FTW::Response] the response for this request.
   def execute(request)
     # TODO(sissel): Make redirection-following optional, but default.

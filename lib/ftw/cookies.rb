@@ -3,9 +3,11 @@ require "cabin"
 
 # Based on behavior and things described in RFC6265
 class FTW::Cookies
+
+  # This is a Cookie. It expires, has a value, a name, etc.
+  # I could have used stdlib CGI::Cookie, but it actually parses cookie strings
+  # incorrectly and also lacks the 'httponly' attribute.
   class Cookie
-    # I could use stdlib CGI::Cookie, but it actually parses cookie strings
-    # incorrectly and also lacks the 'httponly' attribute
     attr_accessor :name
     attr_accessor :value
 
