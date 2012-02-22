@@ -71,6 +71,17 @@ class FTW::Connection
   #
   # Timeout value is optional. If no timeout is given, this method
   # blocks until a connection is successful or an error occurs.
+  #
+  # You should check the return value of this method to determine if
+  # a connection was successful.
+  #
+  # Possible return values are on error include:
+  #
+  # * Errno::ECONNREFUSED
+  # * FTW::Connection::ConnectTimeout
+  #
+  # @return [nil] if the connection was successful
+  # @return [StandardError or subclass] if the connection failed
   def connect(timeout=nil)
     # TODO(sissel): Raise if we're already connected?
     disconnect("reconnecting") if connected?
