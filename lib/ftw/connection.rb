@@ -121,6 +121,8 @@ class FTW::Connection
           # This occurs when the system's TCP timeout hits, we have no control
           # over this, as far as I can tell. *maybe* setsockopt(2) has a flag
           # for this, but I haven't checked..
+          # TODO(sissel): We should instead do 'retry' unless we've exceeded
+          # the timeout.
           return ConnectTimeout.new
         end
       else
