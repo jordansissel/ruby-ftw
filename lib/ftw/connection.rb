@@ -4,7 +4,7 @@ require "ftw/poolable"
 require "ftw/namespace"
 require "socket"
 require "timeout" # ruby stdlib, just for the Timeout exception.
-require "backport" # for Array#rotate, IO::WaitWritable, etc, in ruby < 1.9
+require "backports" # for Array#rotate, IO::WaitWritable, etc, in ruby < 1.9
 
 # A network connection. This is TCP.
 #
