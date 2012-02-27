@@ -28,6 +28,9 @@ class FTW::Connection
   # A write timed out
   class WriteTimeout < StandardError; end
 
+  # Secure setup timed out
+  class SecureHandshakeTimeout < StandardError; end
+
   private
 
   # A new network connection.
@@ -47,6 +50,10 @@ class FTW::Connection
       @destinations = destinations
     end
 
+    setup
+  end # def initialize
+
+  def setup
     @logger = Cabin::Channel.get($0)
     @connect_timeout = 2
 
@@ -69,6 +76,29 @@ class FTW::Connection
     # TODO(sissel): Validate @destinations
     # TODO(sissel): Barf if a destination is not of the form "host:port"
   end # def initialize
+
+  # Create a new connection from an existing IO instance (like a socket)
+  # 
+  # Valid modes are :server and :client.
+  #
+  # * specify :server if this connection is from a server (via Socket#accept)
+  # * specify :client if this connection is from a client (via Socket#connect)
+  def self.from_io(io, mode=:server)
+    valid_modes = [:server, :client]
+    if !valid_modes.include?(mode)
+      raise InvalidArgument.new("Invalid connection mode '#{mode}'. Valid modes: #{valid_modes.inspect}")
+    end
+
+    connection = self.new(nil)
+    connection.instance_eval do
+      @socket = io
+      @connected = true
+      port, address = Socket.unpack_sockaddr_in(io.getpeername)
+      @remote_address = "#{address}:#{port}"
+      @mode = mode
+    end
+    return connection
+  end # def self.from_io
 
   # Connect now.
   #
@@ -252,18 +282,27 @@ class FTW::Connection
     require "openssl"
     sslcontext = OpenSSL::SSL::SSLContext.new
     sslcontext.ssl_version = :TLSv1
-    # If you use VERIFY_NONE, you are removing an important piece 
+    # If you use VERIFY_NONE, you are removing the trust feature of TLS. Don't do that.
+    # Encryption without trust means you don't know who you are talking to.
     sslcontext.verify_mode = OpenSSL::SSL::VERIFY_PEER
     # TODO(sissel): Try to be smart about setting this default.
     sslcontext.ca_path = "/etc/ssl/certs"
     @socket = OpenSSL::SSL::SSLSocket.new(@socket, sslcontext)
 
+    if client?
+      do_secure(:connect_nonblock)
+    else
+      do_secure(:accept_nonblock)
+    end
+  end # def secure
+
+  def do_secure(handshake_method)
     # SSLSocket#connect_nonblock will do the SSL/TLS handshake.
     # TODO(sissel): refactor this into a method that both secure and connect
     # methods can call.
     start = Time.now
     begin
-      @socket.connect_nonblock
+      p :calling => handshake_method, :result => @socket.send(handshake_method)
     rescue IO::WaitReadable, IO::WaitWritable
       # The ruby OpenSSL docs for 1.9.3 have example code saying I should use
       # IO::WaitReadable, but in the real world it raises an SSLError with
@@ -275,30 +314,42 @@ class FTW::Connection
       # raises, WaitWritable (ok, Errno::EINPROGRESS, technically)
       # Ruby's SSL exception for 'this call would block' is pretty shitty.
       #
-      # If the exception string is *not* 'read would block' we have a real
-      # problem.
+      # So we rescue both IO::Wait{Readable,Writable} and keep trying
+      # until timeout occurs.
       
       if !timeout.nil?
         time_left = timeout - (Time.now - start)
-        raise ConnectTimeout.new if time_left < 0
+        raise SecureHandshakeTimeout.new if time_left < 0
         r, w, e = IO.select([@socket], [@socket], nil, time_left)
       else
         r, w, e = IO.select([@socket], [@socket], nil, timeout)
       end
 
-      # try connect_nonblock again if the socket is ready
+      # keep going if the socket is ready
       retry if r.size > 0 || w.size > 0
+    rescue => e
+      @logger.warn(e)
+      raise e
     end
 
     @secure = true
-  end # def secure
+  end # def do_secure
 
   # Has this connection been secured?
   def secured?
     return @secure
   end # def secured?
 
+  def client?
+    return @mode == :client
+  end # def client?
+
+  def server?
+    return @mode == :server
+  end # def server?
+
   public(:connect, :connected?, :write, :read, :pushback, :disconnect,
-         :writable?, :readable?, :peer, :to_io, :secure, :secured?)
+         :writable?, :readable?, :peer, :to_io, :secure, :secured?,
+         :client?, :server?)
 end # class FTW::Connection
 
