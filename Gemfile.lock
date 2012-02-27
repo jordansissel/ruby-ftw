@@ -3,7 +3,7 @@ GEM
   specs:
     addressable (2.2.6)
     backports (2.3.0)
-    cabin (0.1.8)
+    cabin (0.4.1)
       json
     http_parser.rb (0.5.3)
     http_parser.rb (0.5.3-java)
@@ -24,7 +24,7 @@ PLATFORMS
 DEPENDENCIES
   addressable (= 2.2.6)
   backports (= 2.3.0)
-  cabin (= 0.1.8)
+  cabin (= 0.4.1)
   http_parser.rb (= 0.5.3)
   json (= 1.6.5)
   minitest

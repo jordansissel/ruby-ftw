@@ -16,8 +16,11 @@ class FTW::Connection
   include FTW::Poolable
   include Cabin::Inspectable
 
-  # A connection timed out
+  # A connection attempt timed out
   class ConnectTimeout < StandardError; end
+  
+  # A connection attempt was rejected
+  class ConnectRefused < StandardError; end
 
   # A read timed out
   class ReadTimeout < StandardError; end
@@ -116,25 +119,25 @@ class FTW::Connection
           # Ignore, we're already connected.
         rescue Errno::ECONNREFUSED => e
           # Fire 'disconnected' event with reason :refused
-          return e
+          return ConnectRefused.new("#{host}[#{@remote_address}]:#{port}")
         rescue Errno::ETIMEDOUT
           # This occurs when the system's TCP timeout hits, we have no control
           # over this, as far as I can tell. *maybe* setsockopt(2) has a flag
           # for this, but I haven't checked..
           # TODO(sissel): We should instead do 'retry' unless we've exceeded
           # the timeout.
-          return ConnectTimeout.new
+          return ConnectTimeout.new("#{host}[#{@remote_address}]:#{port}")
         end
       else
         # Connection timeout
         # Fire 'disconnected' event with reason :timeout
-        return ConnectTimeout.new
+        return ConnectTimeout.new("#{host}[{@remote_address}]:#{port}")
       end
     end
 
     # We're now connected.
     @connected = true
-    return true
+    return nil
   end # def connect
 
   # Is this Connection connected?

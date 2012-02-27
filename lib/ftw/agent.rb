@@ -167,7 +167,11 @@ class FTW::Agent
   def execute(request)
     # TODO(sissel): Make redirection-following optional, but default.
 
-    connection = connect(request.headers["Host"], request.port)
+    connection, error = connect(request.headers["Host"], request.port)
+    if !error.nil?
+      p :error => error
+      raise error
+    end
     connection.secure if request.protocol == "https"
     response = request.execute(connection)
 
@@ -196,7 +200,12 @@ class FTW::Agent
       @logger.debug("Redirecting", :location => response.headers["Location"])
       redirects += 1
       request.use_uri(response.headers["Location"])
-      connection = connect(request.headers["Host"], request.port)
+      connection, error = connect(request.headers["Host"], request.port)
+      # TODO(sissel): Do better error handling than raising.
+      if !error.nil?
+        p :error => error
+        raise error
+      end
       connection.secure if request.protocol == "https"
       response = request.execute(connection)
     end
@@ -217,15 +226,28 @@ class FTW::Agent
   def connect(host, port)
     address = "#{host}:#{port}"
     @logger.debug("Fetching from pool", :address => address)
+    error = nil
     connection = @pool.fetch(address) do
       @logger.info("New connection to #{address}")
       connection = FTW::Connection.new(address)
-      connection.connect
-      connection
+      error = connection.connect
+      if !error.nil?
+        # Return nil to the pool, so like, we failed..
+        nil
+      else
+        # Otherwise return our new connection
+        connection
+      end
     end
+
+    if !error.nil?
+      @logger.error("Connection failed", :destination => address, :error => error)
+      return nil, error
+    end
+
     @logger.debug("Pool fetched a connection", :connection => connection)
     connection.mark
-    return connection
+    return connection, nil
   end # def connect
 
   public(:initialize, :execute, :websocket!, :upgrade!)

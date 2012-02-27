@@ -44,7 +44,12 @@ class FTW::Pool
       return object if !object.nil?
     end
     # Otherwise put the return value of default_block in the
-    # pool and return it.
-    return add(identifier, default_block.call)
+    # pool and return it, but don't put nil values in the pool.
+    obj = default_block.call
+    if obj.nil?
+      return nil
+    else
+      return add(identifier, obj)
+    end
   end # def fetch
 end # class FTW::Pool
