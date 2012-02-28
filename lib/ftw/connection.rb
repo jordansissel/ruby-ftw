@@ -89,7 +89,7 @@ class FTW::Connection
       raise InvalidArgument.new("Invalid connection mode '#{mode}'. Valid modes: #{valid_modes.inspect}")
     end
 
-    connection = self.new(nil)
+    connection = self.new(nil) # New connection with no destinations
     connection.instance_eval do
       @socket = io
       @connected = true
@@ -289,6 +289,9 @@ class FTW::Connection
     sslcontext.ca_path = "/etc/ssl/certs"
     @socket = OpenSSL::SSL::SSLSocket.new(@socket, sslcontext)
 
+    # TODO(sissel): Set up local certificat/key stuff. This is required for
+    # server-side ssl operation, I think.
+
     if client?
       do_secure(:connect_nonblock)
     else
@@ -302,7 +305,7 @@ class FTW::Connection
     # methods can call.
     start = Time.now
     begin
-      p :calling => handshake_method, :result => @socket.send(handshake_method)
+      @socket.send(handshake_method)
     rescue IO::WaitReadable, IO::WaitWritable
       # The ruby OpenSSL docs for 1.9.3 have example code saying I should use
       # IO::WaitReadable, but in the real world it raises an SSLError with
@@ -316,6 +319,7 @@ class FTW::Connection
       #
       # So we rescue both IO::Wait{Readable,Writable} and keep trying
       # until timeout occurs.
+      #
       
       if !timeout.nil?
         time_left = timeout - (Time.now - start)

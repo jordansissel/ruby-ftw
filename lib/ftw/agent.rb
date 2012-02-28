@@ -1,6 +1,7 @@
 require "ftw/namespace"
 require "ftw/request"
 require "ftw/connection"
+require "ftw/protocol"
 require "ftw/pool"
 require "ftw/websocket"
 require "addressable/uri"
@@ -35,6 +36,8 @@ require "logger"
 #
 # TODO(sissel): TBD: implement cookies... delicious chocolate chip cookies.
 class FTW::Agent
+  include FTW::Protocol
+
   # List of standard HTTP methods described in RFC2616
   STANDARD_METHODS = %w(options get head post put delete trace connect)
 
