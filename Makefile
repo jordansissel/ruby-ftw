@@ -3,7 +3,7 @@ GEM=ftw-$(VERSION).gem
 
 .PHONY: test
 test:
-	sh notify-failure.sh ruby test/all.rb
+	bundle exec sh notify-failure.sh ruby test/all.rb
 
 .PHONY: testloop
 testloop:
