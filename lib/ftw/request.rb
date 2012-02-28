@@ -82,36 +82,8 @@ class FTW::Request
       end
     end
 
-    # TODO(sissel): Support request a body.
-
-    parser = HTTP::Parser.new
-    headers_done = false
-    parser.on_headers_complete = proc { headers_done = true; :stop }
-
-    # headers_done will be set to true when parser finishes parsing the http
-    # headers for this request
-    while !headers_done
-      # TODO(sissel): This read could toss an exception of the server aborts
-      # prior to sending the full headers. Figure out a way to make this happy.
-      # Perhaps fabricating a 500 response?
-      data = connection.read
-
-      # Feed the data into the parser. Offset will be nonzero if there's 
-      # extra data beyond the header.
-      offset = parser << data
-    end
-
-    # Done reading response header
-    response = FTW::Response.new
-    response.version = "#{parser.http_major}.#{parser.http_minor}".to_f
-    response.status = parser.status_code
-    parser.headers.each { |field, value| response.headers.add(field, value) }
-
-    # If we consumed part of the body while parsing headers, put it back
-    # onto the connection's read buffer so the next consumer can use it.
-    if offset < data.length
-      connection.pushback(data[offset .. -1])
-    end
+    response = read_http_message(connection)
+    # TODO(sissel): make sure we got a response, not a request, cuz that'd be weird.
     return response
   end # def execute
 
