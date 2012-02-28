@@ -62,11 +62,13 @@ I do not plan on exposing any direct means for invoking SPDY.
 
 ## Server API
 
-TBD. Will likely surround 'rack'. Need to find out what servers actually can
-support HTTP Upgrade.
+Not sure yet...
 
-It's possible the 'cramp' gem supports all the server-side features we need
-(except for SPDY, I suppose, which I might be able to contribute upstream)
+Since Rack is not supported, I'll have to do a lot of legwork myself.
+
+* Implement a proper Socket Server api
+* Implement a HTTP server on top of that (add SPDY support later)
+* Implement a Sinatra-like DSL on top of HTTP
 
 ## Other Projects
 
@@ -77,3 +79,10 @@ Here are some related projects that I have no affiliation with:
 * https://github.com/lifo/cramp - real-time web framework (async, websockets)
 * https://github.com/igrigorik/em-http-request - HTTP client for EventMachine
 * https://github.com/geemus/excon - http client library
+
+## Missing Features
+
+* No Rack support, for now. There are technical requirements the Rack SPEC that
+  prevent rack applications from really servicing uploads, HTTP Upgrades, etc.
+  Details here: https://github.com/rack/rack/issues/347
+
