@@ -12,6 +12,9 @@ require "backports" # for Array#rotate, IO::WaitWritable, etc, in ruby < 1.9
 # (at least, in MRI you can)
 #
 # You can activate SSL/TLS on this connection by invoking FTW::Connection#secure
+#
+# This class also implements buffering itself because some IO-like classes
+# (OpenSSL::SSL::SSLSocket) do not support IO#ungetbyte
 class FTW::Connection
   include FTW::Poolable
   include Cabin::Inspectable
@@ -195,7 +198,7 @@ class FTW::Connection
   #
   # This method is not guaranteed to read exactly 'length' bytes. See
   # IO#sysread
-  def read(timeout=nil)
+  def read(length=16384, timeout=nil)
     data = ""
     data.force_encoding("BINARY") if data.respond_to?(:force_encoding)
     have_pushback = !@pushback_buffer.empty?
@@ -208,7 +211,8 @@ class FTW::Connection
 
     if readable?(timeout)
       begin
-        @socket.sysread(@read_size, @read_buffer)
+        # Read at most 'length' data, so read less from the socket
+        @socket.sysread(@read_size - data.length, @read_buffer)
         data << @read_buffer
         return data
       rescue EOFError => e
