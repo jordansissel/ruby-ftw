@@ -11,6 +11,8 @@ describe "documentation tests" do
   end
 
   test "All classes, methods, modules, and constants must be documented" do
+    # YARD's parser works best in ruby 1.9.x, so skip 1.8.x
+    skip if RUBY_VERSION < "1.9.2"
     # Note, the 'find the undocumented things' code here is 
     # copied mostly from: YARD 0.7.5's lib/yard/cli/stats.rb
     #
