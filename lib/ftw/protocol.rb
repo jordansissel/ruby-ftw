@@ -2,11 +2,15 @@ require "ftw/namespace"
 require "cabin"
 require "logger"
 
+# This module provides web protocol handling as a mixin.
 module FTW::Protocol
   # Read an HTTP message from a given connection
   #
-  # This method will stop immediately after reading the full message header. No
-  # body will be consumed.
+  # This method blocks until a full http message header has been consumed
+  # (request *or* response)
+  #
+  # The body of the message, if any, will not be consumed, and the read
+  # position for the connection will be left at the end of the message headers.
   def read_http_message(connection)
     parser = HTTP::Parser.new
     headers_done = false
