@@ -4,7 +4,7 @@ require "ftw/crlf"
 require "ftw/http/message"
 require "ftw/namespace"
 require "ftw/response"
-require "http/parser" # gem http_parser.rb
+require "ftw/protocol"
 require "uri" # ruby stdlib
 
 # An HTTP Request.
@@ -12,6 +12,7 @@ require "uri" # ruby stdlib
 # See RFC2616 section 5: <http://tools.ietf.org/html/rfc2616#section-5>
 class FTW::Request
   include FTW::HTTP::Message
+  include FTW::Protocol
   include FTW::CRLF
   include Cabin::Inspectable
 
