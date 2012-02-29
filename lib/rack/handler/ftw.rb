@@ -5,37 +5,41 @@ require "ftw/protocol"
 require "ftw/crlf"
 require "socket"
 
-# THIS FILE HAS BEEN ABANDONED. PLEASE READ:
-# FTW cannot run on Rack due to technical limitations in the Rack design,
-# specifically:
+# FTW cannot fully respect the Rack 1.1 specification due to technical
+# limitations in the Rack design, specifically:
 #
 # * rack.input must be buffered, to support IO#rewind, for the duration of each
 #   request. This is not safe if that request is an HTTP Upgrade or a long
 #   upload.
 #
-# As a result, this rack handler implementation has been abandoned.
-# 
-# The above decision is based on the response to this ticket:
+# FTW::Connection does not implement #rewind. Need it? File a ticket.
+#
+# To support HTTP Upgrade, CONNECT, and protocol-switching features, this
+# server handler will set "ftw.connection" to the FTW::Connection related
+# to this request.
+#
+# The above data is based on the response to this ticket:
 #   https://github.com/rack/rack/issues/347
 class Rack::Handler::FTW
   include FTW::Protocol
   include FTW::CRLF
 
   RACK_VERSION = [1,1]
-  REQUEST_METHOD = "REQUEST_METHOD"
-  SCRIPT_NAME = "SCRIPT_NAME"
-  PATH_INFO = "PATH_INFO"
-  QUERY_STRING = "QUERY_STRING"
-  SERVER_NAME = "SERVER_NAME"
-  SERVER_PORT = "SERVER_PORT"
+  REQUEST_METHOD = "REQUEST_METHOD".freeze
+  SCRIPT_NAME = "SCRIPT_NAME".freeze
+  PATH_INFO = "PATH_INFO".freeze
+  QUERY_STRING = "QUERY_STRING".freeze
+  SERVER_NAME = "SERVER_NAME".freeze
+  SERVER_PORT = "SERVER_PORT".freeze
 
-  RACK_DOT_VERSION = "rack.version"
-  RACK_DOT_URL_SCHEME = "rack.url_scheme"
-  RACK_DOT_INPUT = "rack.input"
-  RACK_DOT_ERRORS = "rack.errors"
-  RACK_DOT_MULTITHREAD = "rack.multithread"
-  RACK_DOT_MULTIPROCESS = "rack.multiprocess"
-  RACK_DOT_RUN_ONCE = "rack.run_once"
+  RACK_DOT_VERSION = "rack.version".freeze
+  RACK_DOT_URL_SCHEME = "rack.url_scheme".freeze
+  RACK_DOT_INPUT = "rack.input".freeze
+  RACK_DOT_ERRORS = "rack.errors".freeze
+  RACK_DOT_MULTITHREAD = "rack.multithread".freeze
+  RACK_DOT_MULTIPROCESS = "rack.multiprocess".freeze
+  RACK_DOT_RUN_ONCE = "rack.run_once".freeze
+  FTW_DOT_CONNECTION = "ftw.connection".freeze
 
   def self.run(app, config)
     server = self.new(app, config)
@@ -86,12 +90,15 @@ class Rack::Handler::FTW
   def handle_request(request, connection)
     path, query = request.path.split("?", 2)
     env = {
+      # CGI-like environment as required by the Rack SPEC version 1.1
       REQUEST_METHOD => request.method,
       SCRIPT_NAME => "/", # TODO(sissel): not totally sure what this really should be
       PATH_INFO => path,
       QUERY_STRING => query.nil? ? "" : query,
-      SERVER_NAME => "???", # TODO(sissel): Set this
-      SERVER_PORT => "who cares, really", # TODO(sissel): Set this
+      SERVER_NAME => "hahaha, no" # TODO(sissel): Set this
+      SERVER_PORT => "", # TODO(sissel): Set this
+
+      # Rack-specific environment, also required by Rack SPEC version 1.1
       RACK_DOT_VERSION => RACK_VERSION,
       RACK_DOT_URL_SCHEME =>  "http", # TODO(sissel): support https
       RACK_DOT_INPUT => connection,
@@ -99,6 +106,13 @@ class Rack::Handler::FTW
       RACK_DOT_MULTITHREAD => true,
       RACK_DOT_MULTIPROCESS => false,
       RACK_DOT_RUN_ONCE => false,
+
+      # Extensions, not in Rack v1.1. 
+
+      # ftw.connection lets you access the connection involved in this request.
+      # It should be used when you need to hijack the connection for use
+      # in proxying, HTTP CONNECT, websockets, SPDY(maybe?), etc.
+      FTW_DOT_CONNECTION => connection
     }
 
     request.headers.each do |name, value|
@@ -136,7 +150,6 @@ class Rack::Handler::FTW
     body.each do |chunk|
       connection.write(chunk)
     end
-    p :OK
   end # def handle_request
 
   public(:run, :initialize)
