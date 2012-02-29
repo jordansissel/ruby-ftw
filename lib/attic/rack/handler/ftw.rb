@@ -2,6 +2,7 @@ require "awesome_print"
 require "rack"
 require "ftw"
 require "ftw/protocol"
+require "ftw/crlf"
 require "socket"
 
 # THIS FILE HAS BEEN ABANDONED. PLEASE READ:
@@ -18,6 +19,7 @@ require "socket"
 #   https://github.com/rack/rack/issues/347
 class Rack::Handler::FTW
   include FTW::Protocol
+  include FTW::CRLF
 
   RACK_VERSION = [1,1]
   REQUEST_METHOD = "REQUEST_METHOD"
@@ -59,17 +61,15 @@ class Rack::Handler::FTW
     # call.  It takes exactly one argument, the environment and returns an
     # Array of exactly three values: The status, the headers, and the body."""
     #
-    server = TCPServer.new(@config[:Host], @config[:Port])
-    loop do
-      client = server.accept
+    server = FTW::Server.new([@config[:Host], @config[:Port]].join(":"))
+    server.each_connection do |connection|
       Thread.new do
-        handle_connection(client)
+        handle_connection(connection)
       end
     end
   end # def run
 
-  def handle_connection(socket)
-    connection = ::FTW::Connection.from_io(socket, :server)
+  def handle_connection(connection)
     while true
       begin
         request = read_http_message(connection)
@@ -121,11 +121,22 @@ class Rack::Handler::FTW
     end # request.headers.each
 
     require "awesome_print"
-    ap env
 
     status, headers, body = @app.call(env)
 
-    p :status => status
+    response = FTW::Response.new
+    response.status = status.to_i
+    response.version = request.version
+    headers.each do |name, value|
+      response.headers.add(name, value)
+    end
+    response.body = body
+
+    connection.write(response.to_s + CRLF)
+    body.each do |chunk|
+      connection.write(chunk)
+    end
+    p :OK
   end # def handle_request
 
   public(:run, :initialize)

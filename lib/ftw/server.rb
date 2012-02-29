@@ -5,6 +5,10 @@ class FTW::Server
   # This class is raised when an error occurs starting the server sockets.
   class ServerSetupFailure < StandardError; end
 
+  # This class is raised when an invalid address is given to the server to
+  # listen on.
+  class InvalidAddress < StandardError; end
+
   private
 
   # The pattern addresses must match. This is used in FTW::Server#initialize.
@@ -27,10 +31,10 @@ class FTW::Server
     failures = []
     # address format is assumed to be 'host:port'
     # TODO(sissel): The split on ":" breaks ipv6 addresses, yo.
-    addresses.each |address|
-      m = ADDRESS_RE.match(m)
+    addresses.each do |address|
+      m = ADDRESS_RE.match(address)
       if !m
-        raise InvalidArgument.new("Invalid address #{address.inspect}, spected string with format 'host:port'")
+        raise InvalidAddress.new("Invalid address #{address.inspect}, spected string with format 'host:port'")
       end
       host, port = m[1..2] # first capture is host, second capture is port
 
