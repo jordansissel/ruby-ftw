@@ -95,7 +95,7 @@ class Rack::Handler::FTW
       SCRIPT_NAME => "/", # TODO(sissel): not totally sure what this really should be
       PATH_INFO => path,
       QUERY_STRING => query.nil? ? "" : query,
-      SERVER_NAME => "hahaha, no" # TODO(sissel): Set this
+      SERVER_NAME => "hahaha, no", # TODO(sissel): Set this
       SERVER_PORT => "", # TODO(sissel): Set this
 
       # Rack-specific environment, also required by Rack SPEC version 1.1
