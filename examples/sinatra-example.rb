@@ -21,7 +21,8 @@ get "/websocket" do
     # take env["ftw.connection"] and run with it.
     begin
       ws.each do |payload|
-        p :payload => payload
+        # TODO(sissel): Implement publishing.
+        #ws.publish(payload)
       end
     rescue => e
       puts "Exception => " + e.inspect
