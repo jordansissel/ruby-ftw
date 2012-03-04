@@ -118,9 +118,9 @@ class FTW::WebSocket
   # The text payload of each message will be yielded to the block.
   def each(&block)
     loop do
-      payload = @parser.feed(@connection.read)
-      next if payload.nil?
-      yield payload
+      @parser.feed(@connection.read(16384)).each do |payload|
+        yield payload
+      end
     end
   end # def each
 

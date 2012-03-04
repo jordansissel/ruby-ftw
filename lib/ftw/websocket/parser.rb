@@ -62,6 +62,8 @@ class FTW::WebSocket::Parser
   def transition(state, next_length)
     @logger.debug("Transitioning", :transition => state, :nextlen => next_length)
     @state = state
+    # TODO(sissel): Assert this self.respond_to?(state)
+    # TODO(sissel): Assert next_length is a number
     need(next_length)
   end # def transition
 
@@ -73,12 +75,12 @@ class FTW::WebSocket::Parser
   # @param [String] the string data to feed into the parser. 
   # @return [String, nil] the websocket message payload, if any, nil otherwise.
   def feed(data)
+    p :feed => data
     @buffer << data
     while have?(@need)
       value = send(@state)
       # Return if our state yields a value.
-      return value if !value.nil?
-      #yield value if !value.nil? and block_given?
+      yield value if !value.nil? and block_given?
     end
     return nil
   end # def <<
@@ -111,7 +113,7 @@ class FTW::WebSocket::Parser
     #    |I|S|S|S|  (4)  
     #    |N|V|V|V|       
     #    | |1|2|3|       
-    byte = get.bytes.first
+    byte = get(@need).bytes.first
     @opcode = byte & 0xF # last 4 bites
     @fin = (byte & 0x80 == 0x80)# first bit
 
@@ -127,8 +129,8 @@ class FTW::WebSocket::Parser
   # State: mask_and_payload_init
   # See: http://tools.ietf.org/html/rfc6455#section-5.2
   def mask_and_payload_init
-    byte = get.bytes.first
-    @mask = byte & 0x80 # first bit (msb)
+    byte = get(@need).bytes.first
+    @masked = (byte & 0x80) == 0x80 # first bit (msb)
     @payload_length = byte & 0x7F # remaining bits are the length
     case @payload_length
       when 126 # 2 byte, unsigned value is the payload length
@@ -136,9 +138,15 @@ class FTW::WebSocket::Parser
       when 127 # 8 byte, unsigned value is the payload length
         transition(:extended_payload_length, 8)
       else
-        # Keep the current payload length, a 7 bit value.
-        # Go to read the payload
-        transition(:payload, @payload_length)
+        # If there is a mask, read that next
+        if @masked
+          transition(:mask, 4)
+        else
+          # Otherwise, the payload is next.
+          # Keep the current payload length, a 7 bit value.
+          # Go to read the payload
+          transition(:payload, @payload_length)
+        end
     end # case @payload_length
 
     # This state yields no output.
@@ -149,7 +157,7 @@ class FTW::WebSocket::Parser
   # This is the 'extended payload length' with support for both 16 
   # and 64 bit lengths.
   # See: http://tools.ietf.org/html/rfc6455#section-5.2
-  def payload_length
+  def extended_payload_length
     #     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     #    +-+-+-+-+-------+-+-------------+-------------------------------+
     #    |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
@@ -171,11 +179,27 @@ class FTW::WebSocket::Parser
         raise "Unknown payload_length byte length '#{@need}'"
     end
 
-    transition(:payload, @payload_length)
+    if @masked
+      # Read the mask next if there is one.
+      transition(:mask, 4)
+    else
+      # Otherwise, next is the payload
+      transition(:payload, @payload_length)
+    end
 
     # This state yields no output.
     return nil
-  end # def payload_length
+  end # def extended_payload_length
+
+  def mask
+    #    + - - - - - - - - - - - - - - - +-------------------------------+
+    #    |                               |Masking-key, if MASK set to 1  |
+    #    +-------------------------------+-------------------------------+
+    #    | Masking-key (continued)       |          Payload Data         |
+    #    +-------------------------------- - - - - - - - - - - - - - - - +
+    @mask = get(@need)
+    transition(:payload, @payload_length)
+  end # def mask
 
   # State: payload
   # Read the full payload and return it.
@@ -189,8 +213,24 @@ class FTW::WebSocket::Parser
     # thing. Have the consumer of this library make that decision.
     data = get(@need)
     transition(:flags_and_opcode, 1)
-    return data
+    if @masked
+      return unmask(data, @mask)
+    else
+      return data
+    end
   end # def payload
+
+  def unmask(message, key)
+    masked = []
+    mask_bytes = key.unpack("C4")
+    i = 0
+    message.each_byte do |byte|
+      masked << (byte ^ mask_bytes[i % 4])
+      i += 1
+    end
+    p :unmasked => masked.pack("C*"), :original => message
+    return  masked.pack("C*")
+  end # def mask
 
   public(:feed)
 end # class FTW::WebSocket::Parser
