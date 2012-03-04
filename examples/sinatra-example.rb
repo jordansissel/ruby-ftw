@@ -1,5 +1,8 @@
 require "awesome_print"
 require "sinatra"
+$: << File.join(File.dirname(__FILE__), "..", "lib")
+require "ftw/websocket/rack"
+
 
 set :server, :FTW
 
@@ -13,8 +16,20 @@ set(:protocol) do |value|
 end
 
 get "/websocket" do
+  ws = FTW::WebSocket::Rack.new(env)
   stream(:keep_open) do |out|
     # take env["ftw.connection"] and run with it.
+    begin
+      ws.each do |payload|
+        p :payload => payload
+      end
+    rescue => e
+      puts "Exception => " + e.inspect
+      #puts e.backtrace.map { |b| " => #{b}\n" }
+      out.close
+    end
   end
-  status 101
+
+  p :response => ws.rack_response
+  ws.rack_response
 end
