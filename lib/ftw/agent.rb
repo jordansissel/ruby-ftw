@@ -109,18 +109,6 @@ class FTW::Agent
     if ws.handshake_ok?(response)
       # response.body is a FTW::Connection
       ws.connection = response.body
-
-      # TODO(sissel): Investigate this bug
-      # There seems to be a bug in http_parser.rb (or maybe in this library)
-      # where websocket responses lead with a newline for some reason. 
-      # It's like the header terminator CRLF still has the LF character left
-      # in the buffer. Work around it.
-      data = response.body.read
-      if data[0] == "\n"
-        response.body.pushback(data[1..-1])
-      else
-        response.body.pushback(data)
-      end
       return ws
     else
       return response
