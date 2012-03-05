@@ -11,3 +11,7 @@ group :testing do
   gem "simplecov"
   gem "yard"
 end
+
+group :examples do
+  gem "sinatra"
+end
