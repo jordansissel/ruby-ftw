@@ -1,4 +1,3 @@
-require "awesome_print"
 require "sinatra"
 $: << File.join(File.dirname(__FILE__), "..", "lib")
 require "ftw/websocket/rack"
@@ -22,7 +21,7 @@ get "/websocket" do
     begin
       ws.each do |payload|
         # TODO(sissel): Implement publishing.
-        #ws.publish(payload)
+        ws.publish(payload)
       end
     rescue => e
       puts "Exception => " + e.inspect
