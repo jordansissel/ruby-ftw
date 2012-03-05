@@ -62,13 +62,29 @@ I do not plan on exposing any direct means for invoking SPDY.
 
 ## Server API
 
-Not sure yet...
+I have implemented a rack server, Rack::Handler::FTW. It does not comply fully
+with the Rack spec. See 'Rack Compliance Issues' below.
 
-Since Rack is not supported, I'll have to do a lot of legwork myself.
+Under the FTW rack handler, there is an environment variable added,
+"ftw.connection". This will be a FTW::Connection you can use for CONNECT,
+Upgrades, etc. 
 
-* Implement a proper Socket Server api
-* Implement a HTTP server on top of that (add SPDY support later)
-* Implement a Sinatra-like DSL on top of HTTP
+There's also a websockets wrapper, FTW::WebSockets::Rack, that will help you
+specifically with websocket requests and such.
+
+## Rack Compliance issues
+
+Due to some awkward and bad requirements - specifically those around the
+specified behavior of 'rack.input' - I can't support the rack specification fully.
+
+The 'rack.input' must be an IO-like object supporting #rewind which rewinds to
+the beginning of the request.
+
+For high-data connections (like uploads, HTTP CONNECT, and HTTP Upgrade), it's
+not practical to hold the entire history of time in a buffer. We'll run out of
+memory, you crazy!
+
+Details here: https://github.com/rack/rack/issues/347
 
 ## Other Projects
 
@@ -79,10 +95,3 @@ Here are some related projects that I have no affiliation with:
 * https://github.com/lifo/cramp - real-time web framework (async, websockets)
 * https://github.com/igrigorik/em-http-request - HTTP client for EventMachine
 * https://github.com/geemus/excon - http client library
-
-## Missing Features
-
-* No Rack support, for now. There are technical requirements the Rack SPEC that
-  prevent rack applications from really servicing uploads, HTTP Upgrades, etc.
-  Details here: https://github.com/rack/rack/issues/347
-
