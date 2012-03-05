@@ -4,7 +4,7 @@ require "base64" # stdlib
 require "digest/sha1" # stdlib
 
 class FTW::WebSocket::Rack
-  WEBSOCKET_ACCEPT_UUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+  include FTW::WebSocket::Constants
 
   private
 
@@ -68,5 +68,10 @@ class FTW::WebSocket::Rack
     end
   end # def each
 
-  public(:initialize, :valid?, :rack_response, :each)
+  def publish(message)
+    writer = FTW::WebSocket::Writer.singleton
+    writer.write_text(@env["ftw.connection"], message)
+  end # def publish
+
+  public(:initialize, :valid?, :rack_response, :each, :publish)
 end # class FTW::WebSocket::Rack

@@ -75,7 +75,6 @@ class FTW::WebSocket::Parser
   # @param [String] the string data to feed into the parser. 
   # @return [String, nil] the websocket message payload, if any, nil otherwise.
   def feed(data)
-    p :feed => data
     @buffer << data
     while have?(@need)
       value = send(@state)
