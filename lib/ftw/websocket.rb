@@ -4,6 +4,7 @@ require "base64" # stdlib
 require "digest/sha1" # stdlib
 require "cabin"
 require "ftw/websocket/parser"
+require "ftw/websocket/writer"
 require "ftw/crlf"
 
 # WebSockets, RFC6455.
@@ -118,75 +119,18 @@ class FTW::WebSocket
   # The text payload of each message will be yielded to the block.
   def each(&block)
     loop do
-      @parser.feed(@connection.read(16384)).each do |payload|
+      @parser.feed(@connection.read(16384)) do |payload|
         yield payload
       end
     end
   end # def each
 
-  # Implement masking as described by http://tools.ietf.org/html/rfc6455#section-5.3
-  # Basically, we take a 4-byte random string and use it, round robin, to XOR
-  # every byte. Like so:
-  #   message[0] ^ key[0]
-  #   message[1] ^ key[1]
-  #   message[2] ^ key[2]
-  #   message[3] ^ key[3]
-  #   message[4] ^ key[0]
-  #   ...
-  def mask(message, key)
-    masked = []
-    mask_bytes = key.unpack("C4")
-    i = 0
-    message.each_byte do |byte|
-      masked << (byte ^ mask_bytes[i % 4])
-      i += 1
-    end
-    return masked.pack("C*")
-  end # def mask
-
   # Publish a message text.
   #
   # This will send a websocket text frame over the connection.
   def publish(message)
-    # TODO(sissel): Support server and client modes.
-    # Server MUST NOT mask. Client MUST mask.
-    #
-    #     0                   1                   2                   3
-    #     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    #    +-+-+-+-+-------+-+-------------+-------------------------------+
-    #    |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
-    #    |I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
-    #    |N|V|V|V|       |S|             |   (if payload len==126/127)   |
-    #    | |1|2|3|       |K|             |                               |
-    #    +-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
-    #    |     Extended payload length continued, if payload len == 127  |
-    #    + - - - - - - - - - - - - - - - +-------------------------------+
-    #    |                               |Masking-key, if MASK set to 1  |
-    #    +-------------------------------+-------------------------------+
-    #    | Masking-key (continued)       |          Payload Data         |
-    #    +-------------------------------- - - - - - - - - - - - - - - - +
-    #    :                     Payload Data continued ...                :
-    #    + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
-    #    |                     Payload Data continued ...                |
-    #    +---------------------------------------------------------------+
-    # TODO(sissel): Support 'fin' flag
-    # Set 'fin' flag and opcode of 'text frame' 
-    length = message.length
-    mask_key = [rand(1 << 32)].pack("Q")
-    if message.length >= (1 << 16)
-      pack = "CCSA4A*" # flags+opcode, mask+len, 2-byte len, payload
-      data = [ 0x80 | TEXTFRAME, 0x80 | 126, message.length, mask_key, mask(message, mask_key) ]
-      @connection.write(data.pack(pack))
-    elsif message.length >= (1 << 7)
-      length = 126
-      pack = "CCQA4A*" # flags+opcode, mask+len, 8-byte len, payload
-      data = [ 0x80 | TEXTFRAME, 0x80 | 127, message.length, mask_key, mask(message, mask_key) ]
-      @connection.write(data.pack(pack))
-    else
-      data = [ 0x80 | TEXTFRAME, 0x80 | message.length, mask_key, mask(message, mask_key) ]
-      pack = "CCA4A*" # flags+opcode, mask+len, payload
-      @connection.write(data.pack(pack))
-    end
+    writer = FTW::WebSocket::Writer.singleton
+    writer.write_text(@connection, message)
   end # def publish
 
   public(:initialize, :connection=, :handshake_ok?, :each, :publish)
