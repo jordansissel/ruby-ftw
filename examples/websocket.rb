@@ -13,7 +13,26 @@ if ws.is_a?(FTW::Response)
   puts ws
   exit 0
 end
-ws.publish({ :foo => :bar}.to_json)
+
+iterations = 100000
+
+# Start a thread to publish messages over the websocket
+Thread.new do 
+  iterations.times do |i|
+    ws.publish({ "time" => Time.now.to_f}.to_json)
+  end
+end
+
+count = 0
+start = Time.now
+
+# For each message, keep a count and report the rate of messages coming in.
 ws.each do |payload|
-  p :payload => payload
+  data = JSON.parse(payload)
+  count += 1
+
+  if count % 5000 == 0
+    p :rate => (count / (Time.now - start)), :total => count
+    break if count == iterations
+  end
 end

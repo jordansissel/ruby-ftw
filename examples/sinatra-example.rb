@@ -2,34 +2,18 @@ require "sinatra"
 $: << File.join(File.dirname(__FILE__), "..", "lib")
 require "ftw/websocket/rack"
 
-
+# Using the FTW rack server is required for this websocket support.
 set :server, :FTW
 
-get "/" do
-  $stderr.puts "Hello world"
-  "OK"
-end
-
-set(:protocol) do |value| 
-  condition { rand <= value }
-end
-
-get "/websocket" do
+# Make an echo server over websockets.
+get "/websocket/echo" do
   ws = FTW::WebSocket::Rack.new(env)
   stream(:keep_open) do |out|
-    # take env["ftw.connection"] and run with it.
-    begin
-      ws.each do |payload|
-        # TODO(sissel): Implement publishing.
-        ws.publish(payload)
-      end
-    rescue => e
-      puts "Exception => " + e.inspect
-      #puts e.backtrace.map { |b| " => #{b}\n" }
-      out.close
+    ws.each do |payload|
+      # 'payload' is the text payload of a single websocket message
+      # publish it back to the client
+      ws.publish(payload)
     end
   end
-
-  p :response => ws.rack_response
   ws.rack_response
 end
