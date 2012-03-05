@@ -17,6 +17,7 @@ I primarily want two things in both client and server operations:
 
 Desired features:
 
+* Awesome documentation
 * A HTTP client that acts as a full user agent, not just a single connections. (With connection reuse)
 * HTTP and SPDY support.
 * WebSockets support.
