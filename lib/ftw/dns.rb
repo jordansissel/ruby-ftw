@@ -1,5 +1,6 @@
 require "ftw/namespace"
 require "socket" # for Socket.gethostbyname
+require "ftw/singleton"
 
 # I wrap whatever Ruby provides because it is historically very
 # inconsistent in implementation behavior across ruby platforms and versions.
@@ -9,15 +10,11 @@ require "socket" # for Socket.gethostbyname
 # I didn't really want to write a DNS library, but a consistent API and
 # behavior is necessary for my continued sanity :)
 class FTW::DNS
+  extend FTW::Singleton
   # TODO(sissel): Switch to using Resolv::DNS since it lets you (the programmer)
   # choose dns configuration (servers, etc)
 
   V4_IN_V6_PREFIX = "0:" * 12
-
-  # Get a singleton instance of FTW::DNS
-  def self.singleton
-    @resolver ||= self.new
-  end # def self.singleton
 
   private
 
