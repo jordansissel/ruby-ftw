@@ -29,7 +29,10 @@ class FTW::WebSocket::Writer
   include FTW::WebSocket::Constants
   extend FTW::Singleton
 
-  # 
+  # A list of valid modes. Used to validate input in #write_text.
+  #
+  # In :server mode, payloads are not masked. In :client mode, payloads
+  # are masked. Masking is described in RFC6455.
   VALID_MODES = [:server, :client]
 
   private

@@ -23,35 +23,56 @@ class Rack::Handler::FTW
   include FTW::Protocol
   include FTW::CRLF
 
+  # The version of the rack specification supported by this handler.
   RACK_VERSION = [1,1]
+
+  # A string constant value (used to avoid typos).
   REQUEST_METHOD = "REQUEST_METHOD".freeze
+  # A string constant value (used to avoid typos).
   SCRIPT_NAME = "SCRIPT_NAME".freeze
+  # A string constant value (used to avoid typos).
   PATH_INFO = "PATH_INFO".freeze
+  # A string constant value (used to avoid typos).
   QUERY_STRING = "QUERY_STRING".freeze
+  # A string constant value (used to avoid typos).
   SERVER_NAME = "SERVER_NAME".freeze
+  # A string constant value (used to avoid typos).
   SERVER_PORT = "SERVER_PORT".freeze
 
+  # A string constant value (used to avoid typos).
   RACK_DOT_VERSION = "rack.version".freeze
+  # A string constant value (used to avoid typos).
   RACK_DOT_URL_SCHEME = "rack.url_scheme".freeze
+  # A string constant value (used to avoid typos).
   RACK_DOT_INPUT = "rack.input".freeze
+  # A string constant value (used to avoid typos).
   RACK_DOT_ERRORS = "rack.errors".freeze
+  # A string constant value (used to avoid typos).
   RACK_DOT_MULTITHREAD = "rack.multithread".freeze
+  # A string constant value (used to avoid typos).
   RACK_DOT_MULTIPROCESS = "rack.multiprocess".freeze
+  # A string constant value (used to avoid typos).
   RACK_DOT_RUN_ONCE = "rack.run_once".freeze
+  # A string constant value (used to avoid typos).
   FTW_DOT_CONNECTION = "ftw.connection".freeze
 
+  # This method is invoked when rack starts this as the server.
   def self.run(app, config)
     server = self.new(app, config)
     server.run
-  end
+  end # def self.run
 
   private
 
+  # setup a new rack server
   def initialize(app, config)
     @app = app
     @config = config
-  end
+  end # def initialize
 
+  # Run the server.
+  #
+  # Connections are farmed out to threads.
   def run
     # {:environment=>"development", :pid=>nil, :Port=>9292, :Host=>"0.0.0.0",
     #  :AccessLog=>[], :config=>"/home/jls/projects/ruby-ftw/examples/test.ru",
@@ -72,6 +93,11 @@ class Rack::Handler::FTW
     end
   end # def run
 
+  # Handle a new connection.
+  #
+  # This method parses http requests and passes them on to #handle_request
+  #
+  # @param connection The FTW::Connection being handled.
   def handle_connection(connection)
     while true
       begin
@@ -86,6 +112,8 @@ class Rack::Handler::FTW
     connection.disconnect("Fun")
   end # def handle_connection
 
+  # Handle a request. This will set up the rack 'env' and invoke the
+  # application associated with this handler.
   def handle_request(request, connection)
     path, query = request.path.split("?", 2)
     env = {

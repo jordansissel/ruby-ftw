@@ -5,6 +5,7 @@
 # The opcode definitions come from:
 # http://tools.ietf.org/html/rfc6455#section-11.8
 module FTW::WebSocket::Constants
+  # websocket uuid, used in hash signing of websocket responses (RFC6455)
   WEBSOCKET_ACCEPT_UUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
   # Indication that this frame is a continuation in a fragmented message

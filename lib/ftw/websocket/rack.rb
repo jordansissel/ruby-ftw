@@ -3,11 +3,29 @@ require "ftw/websocket/parser"
 require "base64" # stdlib 
 require "digest/sha1" # stdlib
 
+# A websocket helper for Rack
+#
+# An example with Sinatra:
+#
+#     get "/websocket/echo" do
+#       ws = FTW::WebSocket::Rack.new(env)
+#       stream(:keep_open) do |out|
+#         ws.each do |payload|
+#           # 'payload' is the text payload of a single websocket message
+#           # publish it back to the client
+#           ws.publish(payload)
+#         end
+#       end
+#       ws.rack_response
+#     end
 class FTW::WebSocket::Rack
   include FTW::WebSocket::Constants
 
   private
 
+  # Create a new websocket rack helper... thing.
+  #
+  # @param rack_env the 'env' bit given to your Rack application
   def initialize(rack_env)
     @env = rack_env
     @handshake_errors = []
@@ -28,16 +46,28 @@ class FTW::WebSocket::Rack
     @parser = FTW::WebSocket::Parser.new
   end # def initialize
 
+  # Test values for equality. This is used in handshake tests.
   def expect_equal(expected, actual, message)
     if expected != actual
       @handshake_errors << message
     end
   end # def expected
 
+  # Is this a valid handshake?
   def valid?
     return @handshake_errors.empty?
   end # def valid?
 
+  # Get the response Rack is expecting.
+  #
+  # If this was a valid websocket request, it will return a response
+  # that completes the HTTP portion of the websocket handshake.
+  #
+  # If this was an invalid websocket request, it will return a
+  # 400 status code and descriptions of what failed in the body
+  # of the response.
+  #
+  # @return [number, hash, body]
   def rack_response
     if valid?
       # Return the status, headers, body that is expected.
@@ -58,6 +88,15 @@ class FTW::WebSocket::Rack
     end
   end # def rack_response
 
+  # Enumerate each websocket payload (message).
+  #
+  # The payload of each message will be yielded to the block.
+  #
+  # Example:
+  #
+  #     ws.each do |payload|
+  #       puts "Received: #{payload}"
+  #     end
   def each
     connection = @env["ftw.connection"]
     while true
@@ -68,6 +107,9 @@ class FTW::WebSocket::Rack
     end
   end # def each
 
+  # Publish a message over this websocket.
+  #
+  # @param message Publish a string message to the websocket.
   def publish(message)
     writer = FTW::WebSocket::Writer.singleton
     writer.write_text(@env["ftw.connection"], message)
