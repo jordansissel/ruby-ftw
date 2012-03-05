@@ -141,7 +141,7 @@ class FTW::Connection
     # Connect with timeout
     begin
       @socket.connect_nonblock(sockaddr)
-    rescue IO::WaitWritable
+    rescue IO::WaitWritable, Errno::EINPROGRESS
       # Ruby actually raises Errno::EINPROGRESS, but for some reason
       # the documentation says to use this IO::WaitWritable thing...
       # I don't get it, but whatever :(
@@ -164,7 +164,7 @@ class FTW::Connection
       else
         # Connection timeout
         # Fire 'disconnected' event with reason :timeout
-        return ConnectTimeout.new("#{host}[{@remote_address}]:#{port}")
+        return ConnectTimeout.new("#{host}[#{@remote_address}]:#{port}")
       end
     end
 
@@ -252,8 +252,8 @@ class FTW::Connection
   #
   # The time out is in seconds. Fractional seconds are OK.
   def writable?(timeout)
-    ready = IO.select(nil, [@socket], nil, timeout)
-    return !ready.nil?
+    readable, writable, errors = IO.select(nil, [@socket], nil, timeout)
+    return !writable.nil?
   end # def writable?
 
   # Is this connection readable? Returns true if it is readable within
@@ -261,9 +261,8 @@ class FTW::Connection
   #
   # The time out is in seconds. Fractional seconds are OK.
   def readable?(timeout)
-    #return false if @reader_closed
-    ready = IO.select([@socket], nil, nil, timeout)
-    return !ready.nil?
+    readable, writable, errors = IO.select([@socket], nil, nil, timeout)
+    return !readable.nil?
   end # def readable?
 
   # The host:port
