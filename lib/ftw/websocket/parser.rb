@@ -190,6 +190,8 @@ class FTW::WebSocket::Parser
     return nil
   end # def extended_payload_length
 
+  # State: mask
+  # Read the mask key
   def mask
     #    + - - - - - - - - - - - - - - - +-------------------------------+
     #    |                               |Masking-key, if MASK set to 1  |
@@ -203,7 +205,6 @@ class FTW::WebSocket::Parser
   # State: payload
   # Read the full payload and return it.
   # See: http://tools.ietf.org/html/rfc6455#section-5.3
-  #
   def payload
     # TODO(sissel): Handle massive payload lengths without exceeding memory.
     # Perhaps if the payload is large (say, larger than 500KB by default),
@@ -219,6 +220,10 @@ class FTW::WebSocket::Parser
     end
   end # def payload
 
+  # Unmask the message using the key.
+  #
+  # For implementation specification, see
+  # http://tools.ietf.org/html/rfc6455#section-5.3
   def unmask(message, key)
     masked = []
     mask_bytes = key.unpack("C4")
@@ -229,7 +234,7 @@ class FTW::WebSocket::Parser
     end
     p :unmasked => masked.pack("C*"), :original => message
     return  masked.pack("C*")
-  end # def mask
+  end # def unmask
 
   public(:feed)
 end # class FTW::WebSocket::Parser

@@ -56,6 +56,7 @@ class FTW::Connection
     setup
   end # def initialize
 
+  # Set up this connection.
   def setup
     @logger = Cabin::Channel.get($0)
     @connect_timeout = 2
@@ -78,7 +79,7 @@ class FTW::Connection
 
     # TODO(sissel): Validate @destinations
     # TODO(sissel): Barf if a destination is not of the form "host:port"
-  end # def initialize
+  end # def setup
 
   # Create a new connection from an existing IO instance (like a socket)
   # 
@@ -303,6 +304,14 @@ class FTW::Connection
     end
   end # def secure
 
+  # Secure this connection.
+  #
+  # The handshake method for OpenSSL::SSL::SSLSocket is different depending
+  # on the mode (client or server).
+  #
+  # @param [Symbol] handshake_method The method to call on the socket to
+  #   complete the ssl handshake. See OpenSSL::SSL::SSLSocket#connect_nonblock
+  #   of #accept_nonblock for more details
   def do_secure(handshake_method)
     # SSLSocket#connect_nonblock will do the SSL/TLS handshake.
     # TODO(sissel): refactor this into a method that both secure and connect
@@ -348,10 +357,12 @@ class FTW::Connection
     return @secure
   end # def secured?
 
+  # Is this a client connection?
   def client?
     return @mode == :client
   end # def client?
 
+  # Is this a server connection?
   def server?
     return @mode == :server
   end # def server?

@@ -57,12 +57,16 @@ class FTW::WebSocket::Writer
     connection.write(data.pack(pack.join("")))
   end # def write_text
 
+  # Pack the opcode and flags
+  #
+  # Currently assumes 'fin' flag is set.
   def pack_opcode(data, pack, opcode)
     # Pack the first byte (fin + opcode)
     data << ((1 << 7) | opcode)
     pack << "C"
   end # def pack_opcode
 
+  # Pack the payload.
   def pack_payload(data, pack, text, mode)
     pack_maskbit_and_length(data, pack, text.length, mode)
     pack_extended_length(data, pack, text.length) if text.length > 126
@@ -97,6 +101,7 @@ class FTW::WebSocket::Writer
     return masked.pack("C*")
   end # def mask
 
+  # Pack the first part of the length (mask and 7-bit length)
   def pack_maskbit_and_length(data, pack, length, mode)
     # Pack mask + payload length
     maskbit = (mode == :client) ? (1 << 7) : 0
