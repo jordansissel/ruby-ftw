@@ -44,22 +44,23 @@ class FTW::Server
       # resolve each hostname, use the first one that successfully binds.
       local_failures = []
       dns.resolve(host).each do |ip|
-        family = ip.include?(":") ? Socket::AF_INET6 : Socket::AF_INET
-        socket = Socket.new(family, Socket::SOCK_STREAM, 0)
-        sockaddr = Socket.pack_sockaddr_in(port, ip)
-        begin
-          socket.setsockopt(Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true)
-          socket.bind(sockaddr)
+        #family = ip.include?(":") ? Socket::AF_INET6 : Socket::AF_INET
+        #socket = Socket.new(family, Socket::SOCK_STREAM, 0)
+        #sockaddr = Socket.pack_sockaddr_in(port, ip)
+        socket = TCPServer.new(ip, port)
+        #begin
+          #socket.setsockopt(Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true)
+          #socket.bind(sockaddr)
           # If we get here, bind was successful
-        rescue Errno::EADDRNOTAVAIL => e
+        #rescue Errno::EADDRNOTAVAIL => e
           # TODO(sissel): Record this failure.
-          local_failures << "Could not bind to #{ip}:#{port}, address not available on this system."
-          next
-        rescue Errno::EACCES
+          #local_failures << "Could not bind to #{ip}:#{port}, address not available on this system."
+          #next
+        #rescue Errno::EACCES
           # TODO(sissel): Record this failure.
-          local_failures << "No permission to bind to #{ip}:#{port}: #{e.inspect}"
-          next
-        end
+          #local_failures << "No permission to bind to #{ip}:#{port}: #{e.inspect}"
+          #next
+        #end
 
         begin
           socket.listen(100)
@@ -69,6 +70,7 @@ class FTW::Server
         end
 
         # Break when successfully listened
+        p :accept? => socket.respond_to?(:accept)
         @sockets["#{host}(#{ip}):#{port}"] = socket
         local_failures.clear
         break
@@ -95,6 +97,7 @@ class FTW::Server
       sockets = @sockets.values
       read, write, error = IO.select(sockets, nil, nil, nil)
       read.each do |serversocket|
+        p serversocket.methods.sort
         socket, addrinfo = serversocket.accept
         connection = FTW::Connection.from_io(socket)
         yield connection
