@@ -1,4 +1,3 @@
-require "awesome_print"
 require "rack"
 require "ftw"
 require "ftw/protocol"
@@ -133,8 +132,6 @@ class Rack::Handler::FTW
       #
       env["HTTP_#{name.upcase.gsub("-", "_")}"] = value
     end # request.headers.each
-
-    require "awesome_print"
 
     status, headers, body = @app.call(env)
 
