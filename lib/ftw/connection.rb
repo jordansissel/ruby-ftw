@@ -113,7 +113,7 @@ class FTW::Connection
   #
   # Possible return values are on error include:
   #
-  # * Errno::ECONNREFUSED
+  # * FTW::Connection::ConnectRefused
   # * FTW::Connection::ConnectTimeout
   #
   # @return [nil] if the connection was successful
@@ -145,6 +145,7 @@ class FTW::Connection
       # Ruby actually raises Errno::EINPROGRESS, but for some reason
       # the documentation says to use this IO::WaitWritable thing...
       # I don't get it, but whatever :(
+
       if writable?(timeout)
         begin
           @socket.connect_nonblock(sockaddr) # check connection failure
