@@ -3,4 +3,6 @@ module FTW
   module HTTP; end
   # :nodoc:
   class WebSocket; end
+  # :nodoc:
+  class DNS; end
 end
