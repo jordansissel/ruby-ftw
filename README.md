@@ -2,9 +2,10 @@
 
 ## Getting Started
 
-For doing client stuff (http requests, etc), you'll want {FTW::Agent}.
-
-For doing server stuff (http serving, etc), you'll want {FTW::Server}. (not implemented yet)
+* For web agents: {FTW::Agent}
+* For dns: {FTW::DNS}
+* For tcp connections: {FTW::Connection}
+* For tcp servers: {FTW::Server}
 
 ## Overview
 
@@ -12,7 +13,7 @@ net/http is pretty much not good. Additionally, DNS behavior in ruby changes qui
 
 I primarily want two things in both client and server operations:
 
-* A consistent API with good documentation and tests
+* A consistent API with good documentation, readable code, and high quality tests.
 * Modern web features: websockets, spdy, etc.
 
 Desired features:
@@ -33,6 +34,8 @@ For reference:
 
 ## Agent API
 
+Reference: {FTW::Agent}
+
 ### Common case
 
     agent = FTW::Agent.new
@@ -46,6 +49,8 @@ For reference:
     puts response.body.read
 
 ### SPDY
+
+* This is not implemented yet
 
 SPDY should automatically be attempted. The caller should be unaware.
 
@@ -61,7 +66,7 @@ I do not plan on exposing any direct means for invoking SPDY.
       puts :received => message
     end
 
-## Server API
+## Web Server API
 
 I have implemented a rack server, Rack::Handler::FTW. It does not comply fully
 with the Rack spec. See 'Rack Compliance Issues' below.
@@ -83,7 +88,7 @@ the beginning of the request.
 
 For high-data connections (like uploads, HTTP CONNECT, and HTTP Upgrade), it's
 not practical to hold the entire history of time in a buffer. We'll run out of
-memory, you crazy!
+memory, you crazy fools!
 
 Details here: https://github.com/rack/rack/issues/347
 
@@ -93,6 +98,11 @@ Here are some related projects that I have no affiliation with:
 
 * https://github.com/igrigorik/em-websocket - websocket server for eventmachine
 * https://github.com/faye/faye - pubsub for the web (includes a websockets implementation)
+* https://github.com/faye/faye-websocket-ruby - websocket client and server in ruby
 * https://github.com/lifo/cramp - real-time web framework (async, websockets)
 * https://github.com/igrigorik/em-http-request - HTTP client for EventMachine
 * https://github.com/geemus/excon - http client library
+
+Given some of the above (especially the server-side stuff), I'm likely try and integrate
+with those projects. For example, writing a Faye handler that uses the FTW server, if the
+FTW web server even stays around.
