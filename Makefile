@@ -44,3 +44,7 @@ install: $(GEM)
 clean:
 	-rm -rf .yardoc $(GEM) coverage
 
+.PHONY: servedocs
+servedocs:
+	yard server
+
