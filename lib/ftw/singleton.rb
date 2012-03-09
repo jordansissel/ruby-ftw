@@ -18,7 +18,18 @@ module FTW::Singleton
     raise ArgumentError.new("In #{klass.name}, you want to use 'extend #{self.name}', not 'include ...'")
   end # def included
 
-  # Create a singleton instance of this class.
+  # Create a singleton instance of whatever class this module is extended into.
+  #
+  # Example:
+  #
+  #     class Foo
+  #       extend FTW::Singleton
+  #       def bar
+  #         "Hello!"
+  #       end
+  #     end
+  #
+  #     p Foo.singleton.bar   # == "Hello!"
   def singleton
     @instance ||= self.new
     return @instance
