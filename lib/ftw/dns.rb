@@ -21,10 +21,18 @@ class FTW::DNS
 
   private
 
+  # A new resolver.
+  #
+  # The default set of resolvers is only {FTW::DNS::DNS} which does DNS
+  # resolution.
   def initialize
     @resolvers = [FTW::DNS::DNS.new]
   end # def initialize
 
+  # Resolve a hostname.
+  #
+  # Returns an array of all addresses for this host. Empty array resolution
+  # failure.
   def resolve(hostname)
     return @resolvers.reduce([]) do |memo, resolver|
       result = resolver.resolve(hostname)
