@@ -70,7 +70,7 @@ class FTW::Server
         end
 
         # Break when successfully listened
-        p :accept? => socket.respond_to?(:accept)
+        #p :accept? => socket.respond_to?(:accept)
         @sockets["#{host}(#{ip}):#{port}"] = socket
         local_failures.clear
         break
@@ -97,7 +97,7 @@ class FTW::Server
       sockets = @sockets.values
       read, write, error = IO.select(sockets, nil, nil, nil)
       read.each do |serversocket|
-        p serversocket.methods.sort
+        #p serversocket.methods.sort
         socket, addrinfo = serversocket.accept
         connection = FTW::Connection.from_io(socket)
         yield connection
