@@ -3,6 +3,7 @@ require "ftw"
 require "ftw/protocol"
 require "ftw/crlf"
 require "socket"
+require "cabin"
 
 # FTW cannot fully respect the Rack 1.1 specification due to technical
 # limitations in the Rack design, specifically:
@@ -54,6 +55,8 @@ class Rack::Handler::FTW
   # A string constant value (used to avoid typos).
   RACK_DOT_RUN_ONCE = "rack.run_once".freeze
   # A string constant value (used to avoid typos).
+  RACK_DOT_LOGGER = "rack.logger".freeze
+  # A string constant value (used to avoid typos).
   FTW_DOT_CONNECTION = "ftw.connection".freeze
 
   # This method is invoked when rack starts this as the server.
@@ -85,6 +88,7 @@ class Rack::Handler::FTW
     # call.  It takes exactly one argument, the environment and returns an
     # Array of exactly three values: The status, the headers, and the body."""
     #
+    logger.info("Starting server", :config => @config)
     server = FTW::Server.new([@config[:Host], @config[:Port]].join(":"))
     server.each_connection do |connection|
       Thread.new do
@@ -133,6 +137,7 @@ class Rack::Handler::FTW
       RACK_DOT_MULTITHREAD => true,
       RACK_DOT_MULTIPROCESS => false,
       RACK_DOT_RUN_ONCE => false,
+      RACK_DOT_LOGGER => logger,
 
       # Extensions, not in Rack v1.1. 
 
@@ -176,6 +181,14 @@ class Rack::Handler::FTW
       connection.write(chunk)
     end
   end # def handle_request
+
+  def logger
+    if @logger.nil?
+      @logger = Cabin::Channel.get
+      @logger.subscribe(STDOUT)
+    end
+    return @logger
+  end # def logger
 
   public(:run, :initialize)
 end
