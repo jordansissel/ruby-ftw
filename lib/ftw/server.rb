@@ -82,12 +82,12 @@ class FTW::Server
     raise ServerSetupFailure.new(failures) if failures.any?
   end # def initialize
 
-  # Close the server sockets
-  def close
+  # Stop serving.
+  def stop
     @sockets.each do |name, socket|
       socket.close
     end
-  end # def close
+  end # def stop
 
   # Yield FTW::Connection instances to the block as clients connect.
   def each_connection(&block)
@@ -105,6 +105,6 @@ class FTW::Server
     end
   end # def each_connection
 
-  public(:initialize, :close, :each_connection)
+  public(:initialize, :stop, :each_connection)
 end # class FTW::Server
 
