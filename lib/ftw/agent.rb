@@ -6,7 +6,6 @@ require "ftw/pool"
 require "ftw/websocket"
 require "addressable/uri"
 require "cabin"
-require "logger"
 
 # This should act as a proper web agent.
 #
@@ -47,9 +46,7 @@ class FTW::Agent
 
   def initialize
     @pool = FTW::Pool.new
-    @logger = Cabin::Channel.get($0)
-    @logger.subscribe(Logger.new(STDOUT))
-    @logger.level = :warn
+    @logger = Cabin::Channel.get
 
     @redirect_max = 20
   end # def initialize
