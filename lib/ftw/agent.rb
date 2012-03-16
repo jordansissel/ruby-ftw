@@ -210,6 +210,17 @@ class FTW::Agent
     return response
   end # def execute
 
+  # shutdown this agent.
+  #
+  # This will shutdown all active connections.
+  def shutdown
+    @pool.each do |identifier, list|
+      list.each do |connection|
+        connection.disconnect("stopping agent")
+      end
+    end
+  end # def shutdown
+
   # Returns a FTW::Connection connected to this host:port.
   def connect(host, port)
     address = "#{host}:#{port}"
@@ -238,5 +249,5 @@ class FTW::Agent
     return connection, nil
   end # def connect
 
-  public(:initialize, :execute, :websocket!, :upgrade!)
+  public(:initialize, :execute, :websocket!, :upgrade!, :shutdown)
 end # class FTW::Agent
