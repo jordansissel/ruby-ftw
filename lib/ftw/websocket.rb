@@ -38,6 +38,7 @@ class FTW::WebSocket
     @request = request
     prepare(@request)
     @parser = FTW::WebSocket::Parser.new
+    @messages = []
   end # def initialize
 
   # Set the connection for this websocket. This is usually invoked by FTW::Agent
@@ -119,11 +120,24 @@ class FTW::WebSocket
   # The text payload of each message will be yielded to the block.
   def each(&block)
     while true
-      @parser.feed(@connection.read(16384)) do |payload|
-        yield payload
-      end
+      block.call(receive)
     end
   end # def each
+
+  # Receive a single payload
+  def receive
+    @messages += network_consume if @messages.empty?
+    @messages.shift
+  end # def receive
+
+  # Consume payloads from the network.
+  def network_consume
+    payloads = []
+    @parser.feed(@connection.read(16384)) do |payload|
+      payloads << payload
+    end
+    return payloads
+  end # def network_consume
 
   # Publish a message text.
   #
@@ -133,6 +147,5 @@ class FTW::WebSocket
     writer.write_text(@connection, message)
   end # def publish
 
-  public(:initialize, :connection=, :handshake_ok?, :each, :publish)
+  public(:initialize, :connection=, :handshake_ok?, :each, :publish, :receive)
 end # class FTW::WebSocket
-
