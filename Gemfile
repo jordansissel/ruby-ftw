@@ -10,6 +10,7 @@ gem "minitest" # for unit tests, latest of this is fine
 group :testing do
   gem "simplecov"
   gem "yard"
+  gem "insist"
 end
 
 group :examples do
