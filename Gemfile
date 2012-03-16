@@ -11,6 +11,7 @@ group :testing do
   gem "simplecov"
   gem "yard"
   gem "insist"
+  gem "rspec"
 end
 
 group :examples do
