@@ -61,6 +61,7 @@ class Rack::Handler::FTW
 
   # This method is invoked when rack starts this as the server.
   def self.run(app, config)
+    #@logger.subscribe(STDOUT)
     server = self.new(app, config)
     server.run
   end # def self.run
@@ -182,10 +183,10 @@ class Rack::Handler::FTW
     end
   end # def handle_request
 
+  # Get the logger.
   def logger
     if @logger.nil?
       @logger = Cabin::Channel.get
-      @logger.subscribe(STDOUT)
     end
     return @logger
   end # def logger
