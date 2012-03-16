@@ -100,7 +100,13 @@ class FTW::WebSocket::Rack
   def each
     connection = @env["ftw.connection"]
     while true
-      data = connection.read(16384)
+      begin
+        data = connection.read(16384)
+      rescue EOFError
+        # connection shutdown, close up.
+        break
+      end
+
       @parser.feed(data) do |payload|
         yield payload if !payload.nil?
       end
