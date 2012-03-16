@@ -52,4 +52,16 @@ class FTW::Pool
       return add(identifier, obj)
     end
   end # def fetch
+
+  # Iterate over all pool members.
+  #
+  # This holds the pool lock during this method, so you should not call 'fetch'
+  # or 'add'.
+  def each(&block)
+    @lock.synchronize do
+      @pool.each do |identifier, object|
+        block.call(identifier, object)
+      end
+    end
+  end # def each
 end # class FTW::Pool
