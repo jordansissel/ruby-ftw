@@ -47,7 +47,7 @@ class FTW::WebSocket::Parser
 
   # A new WebSocket protocol parser.
   def initialize
-    @logger = Cabin::Channel.get($0)
+    @logger = Cabin::Channel.get
     @opcode = 0
     @masking_key = ""
     @flag_final_payload = 0
