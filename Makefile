@@ -1,9 +1,11 @@
-VERSION=$(shell awk -F\" '/VERSION/ { print $$2 }' lib/ftw/version.rb)
-GEM=ftw-$(VERSION).gem
+GEMSPEC=$(shell ls *.gemspec)
+VERSION=$(shell awk -F\" '/spec.version/ { print $$2 }' $(GEMSPEC))
+NAME=$(shell awk -F\" '/spec.name/ { print $$2 }' $(GEMSPEC))
+GEM=$(NAME)-$(VERSION).gem
 
 .PHONY: test
 test:
-	bundle exec sh notify-failure.sh ruby test/all.rb
+	sh notify-failure.sh ruby test/all.rb
 
 .PHONY: testloop
 testloop:
@@ -23,8 +25,11 @@ wait-for-changes:
 .PHONY: package
 package: | $(GEM)
 
+.PHONY: gem
+gem: $(GEM)
+
 $(GEM):
-	gem build ftw.gemspec
+	gem build $(GEMSPEC)
 
 .PHONY: test-package
 test-package: $(GEM)
@@ -39,12 +44,3 @@ publish: test-package
 .PHONY: install
 install: $(GEM)
 	gem install $(GEM)
-
-.PHONY: clean
-clean:
-	-rm -rf .yardoc $(GEM) coverage
-
-.PHONY: servedocs
-servedocs:
-	yard server
-
