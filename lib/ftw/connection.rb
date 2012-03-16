@@ -58,7 +58,7 @@ class FTW::Connection
 
   # Set up this connection.
   def setup
-    @logger = Cabin::Channel.get($0)
+    @logger = Cabin::Channel.get
     @connect_timeout = 2
 
     # Use a fixed-size string that we set to BINARY encoding.
@@ -136,7 +136,8 @@ class FTW::Connection
     @socket = Socket.new(family, Socket::SOCK_STREAM, 0)
 
     # This api is terrible. pack_sockaddr_in? This isn't C, man...
-    sockaddr = Socket.pack_sockaddr_in(port, @remote_address)
+    @logger.info("packing", :data => [port.to_i, @remote_address])
+    sockaddr = Socket.pack_sockaddr_in(port.to_i, @remote_address)
     # TODO(sissel): Support local address binding
 
     # Connect with timeout
