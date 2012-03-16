@@ -72,6 +72,7 @@ class Rack::Handler::FTW
   def initialize(app, config)
     @app = app
     @config = config
+    @threads = []
   end # def initialize
 
   # Run the server.
@@ -90,13 +91,18 @@ class Rack::Handler::FTW
     # Array of exactly three values: The status, the headers, and the body."""
     #
     logger.info("Starting server", :config => @config)
-    server = FTW::Server.new([@config[:Host], @config[:Port]].join(":"))
-    server.each_connection do |connection|
-      Thread.new do
+    @server = FTW::Server.new([@config[:Host], @config[:Port]].join(":"))
+    @server.each_connection do |connection|
+      @threads << Thread.new do
         handle_connection(connection)
       end
     end
   end # def run
+
+  def stop
+    @server.stop unless @server.nil?
+    @threads.each(&:join)
+  end # def stop
 
   # Handle a new connection.
   #
@@ -107,6 +113,13 @@ class Rack::Handler::FTW
     while true
       begin
         request = read_http_message(connection)
+      rescue EOFError
+        # Connection EOF'd before we finished reading a full HTTP message,
+        # shut it down.
+        break
+      end
+
+      begin
         handle_request(request, connection)
       rescue => e
         puts e.inspect
@@ -146,7 +159,7 @@ class Rack::Handler::FTW
       # It should be used when you need to hijack the connection for use
       # in proxying, HTTP CONNECT, websockets, SPDY(maybe?), etc.
       FTW_DOT_CONNECTION => connection
-    }
+    } # env
 
     request.headers.each do |name, value|
       # The Rack spec says: 
@@ -167,8 +180,10 @@ class Rack::Handler::FTW
       env["HTTP_#{name.upcase.gsub("-", "_")}"] = value
     end # request.headers.each
 
+    # Invoke the application in this rack app
     status, headers, body = @app.call(env)
 
+    # The application is done handling this request, respond to the client.
     response = FTW::Response.new
     response.status = status.to_i
     response.version = request.version
@@ -191,5 +206,5 @@ class Rack::Handler::FTW
     return @logger
   end # def logger
 
-  public(:run, :initialize)
+  public(:run, :initialize, :stop)
 end
