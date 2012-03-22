@@ -1,5 +1,6 @@
 require "ftw/namespace"
 require "ftw/websocket/parser"
+require "ftw/crlf"
 require "base64" # stdlib 
 require "digest/sha1" # stdlib
 
@@ -20,6 +21,7 @@ require "digest/sha1" # stdlib
 #     end
 class FTW::WebSocket::Rack
   include FTW::WebSocket::Constants
+  include FTW::CRLF
 
   private
 
