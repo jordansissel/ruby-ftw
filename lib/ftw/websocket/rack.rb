@@ -36,7 +36,11 @@ class FTW::WebSocket::Rack
     expect_equal("websocket", @env["HTTP_UPGRADE"],
                  "The 'Upgrade' header must be set to 'websocket'")
     # RFC6455 section 4.2.1 bullet 4
-    expect_equal("Upgrade", @env["HTTP_CONNECTION"],
+    # Firefox uses a multivalued 'Connection' header, that appears like this:
+    #   Connection: keep-alive, Upgrade
+    # So we have to split this multivalue field. 
+    expect_equal(true,
+                 @env["HTTP_CONNECTION"].split(/, +/).include?("Upgrade"),
                  "The 'Connection' header must be set to 'Upgrade'")
     # RFC6455 section 4.2.1 bullet 6
     expect_equal("13", @env["HTTP_SEC_WEBSOCKET_VERSION"],
