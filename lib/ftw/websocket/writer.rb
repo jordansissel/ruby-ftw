@@ -118,5 +118,16 @@ class FTW::WebSocket::Writer
     pack << "C"
   end
 
+  def pack_extended_length(data, pack, length)
+    data << length
+    if length >= (1 << 16)
+      # For lengths >= 16 bits, pack 8 byte length
+      pack << "Q"
+    else
+      # For lengths < 16 bits, pack 2 byte length
+      pack << "S"
+    end
+  end # def pack_extended_length
+
   public(:initialize, :write_text)
 end # module FTW::WebSocket::Writer
