@@ -18,12 +18,12 @@ Gem::Specification.new do |spec|
   spec.summary = spec.description
   spec.license = "Apache License (2.0)"
 
-  gem "json", "1.6.5" # for json
-  gem "cabin", ">0" # for logging, latest is fine for now
-  gem "http_parser.rb", "0.5.3" # for http request/response parsing
-  gem "addressable", "2.2.6"  # because stdlib URI is terrible
-  gem "backports", "2.3.0" # for hacking stuff into ruby <1.9
-  gem "minitest", ">0" # for unit tests, latest of this is fine
+  spec.add_dependency("json", "1.6.5") # for json
+  spec.add_dependency("cabin", ">0") # for logging, latest is fine for now
+  spec.add_dependency("http_parser.rb", "0.5.3") # for http request/response parsing
+  spec.add_dependency("addressable", "2.2.6")  # because stdlib URI is terrible
+  spec.add_dependency("backports", "2.3.0") # for hacking stuff into ruby <1.9
+  spec.add_dependency("minitest", ">0") # for unit tests, latest of this is fine
 
 
   spec.files = files
