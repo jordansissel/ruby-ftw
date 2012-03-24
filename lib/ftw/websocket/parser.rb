@@ -171,9 +171,9 @@ class FTW::WebSocket::Parser
     data = get
     case @need
       when 2
-        @payload_length = data.unpack("S").first
+        @payload_length = data.unpack("S>").first
       when 8
-        @payload_length = data.unpack("Q").first
+        @payload_length = data.unpack("Q>").first
       else
         raise "Unknown payload_length byte length '#{@need}'"
     end

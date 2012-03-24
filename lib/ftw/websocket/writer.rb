@@ -69,7 +69,7 @@ class FTW::WebSocket::Writer
   # Pack the payload.
   def pack_payload(data, pack, text, mode)
     pack_maskbit_and_length(data, pack, text.length, mode)
-    pack_extended_length(data, pack, text.length) if text.length > 126
+    pack_extended_length(data, pack, text.length) if text.length >= 126
     if mode == :client
       mask_key = [rand(1 << 32)].pack("Q")
       pack_mask(data, pack, mask_key)
@@ -122,10 +122,10 @@ class FTW::WebSocket::Writer
     data << length
     if length >= (1 << 16)
       # For lengths >= 16 bits, pack 8 byte length
-      pack << "Q"
+      pack << "Q>"
     else
       # For lengths < 16 bits, pack 2 byte length
-      pack << "S"
+      pack << "S>"
     end
   end # def pack_extended_length
 
