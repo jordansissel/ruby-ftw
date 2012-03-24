@@ -93,6 +93,16 @@ class Rack::Handler::FTW
     logger.info("Starting server", :config => @config)
     @server = FTW::Server.new([@config[:Host], @config[:Port]].join(":"))
     @server.each_connection do |connection|
+      # The rack specification insists that 'rack.input' objects support
+      # #rewind. Bleh. Just lie about it and monkeypatch it in.
+      # This is required for Sinatra to accept 'post' requests, otherwise
+      # it barfs.
+      class << connection
+        def rewind(*args)
+          # lolrack, nothing to do here.
+        end
+      end
+
       @threads << Thread.new do
         handle_connection(connection)
       end
