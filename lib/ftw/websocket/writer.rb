@@ -116,8 +116,9 @@ class FTW::WebSocket::Writer
     end
     data << (maskbit | lengthbits)
     pack << "C"
-  end
+  end # def pack_maskbit_and_length
 
+  # Pack the extended length. 16 bits or 64 bits
   def pack_extended_length(data, pack, length)
     data << length
     if length >= (1 << 16)

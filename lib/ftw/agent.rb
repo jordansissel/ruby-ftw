@@ -40,6 +40,8 @@ class FTW::Agent
   require "ftw/agent/configuration"
   include FTW::Agent::Configuration
 
+  # Thrown when too many redirects are encountered
+  # See also {FTW::Agent::Configuration::REDIRECTION_LIMIT}
   class TooManyRedirects < StandardError
     attr_accessor :response
     def initialize(reason, response)
