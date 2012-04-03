@@ -5,6 +5,7 @@ require "ftw/namespace"
 require "socket"
 require "timeout" # ruby stdlib, just for the Timeout exception.
 require "backports" # for Array#rotate, IO::WaitWritable, etc, in ruby < 1.9
+require "openssl"
 
 # A network connection. This is TCP.
 #
@@ -53,6 +54,7 @@ class FTW::Connection
       @destinations = destinations
     end
 
+    @mode = :client
     setup
   end # def initialize
 
@@ -136,7 +138,7 @@ class FTW::Connection
     @socket = Socket.new(family, Socket::SOCK_STREAM, 0)
 
     # This api is terrible. pack_sockaddr_in? This isn't C, man...
-    @logger.info("packing", :data => [port.to_i, @remote_address])
+    @logger.debug("packing", :data => [port.to_i, @remote_address])
     sockaddr = Socket.pack_sockaddr_in(port.to_i, @remote_address)
     # TODO(sissel): Support local address binding
 
@@ -279,29 +281,35 @@ class FTW::Connection
   end # def to_io
 
   # Secure this connection with TLS.
-  def secure(timeout=nil, options={})
+  #
+  # Options:
+  #
+  # * :certificate_store, an OpenSSL::X509::Store
+  # * :timeout, a timeout threshold in seconds.
+  def secure(options={})
     # Skip this if we're already secure.
     return if secured?
 
-    @logger.debug("Securing this connection", :peer => peer, :connection => self)
+    options[:timeout] ||= nil
+    options[:certificate_store] ||= OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE
+
+    @logger.info("Securing this connection", :peer => peer)
     # Wrap this connection with TLS/SSL
-    require "openssl"
     sslcontext = OpenSSL::SSL::SSLContext.new
-    sslcontext.ssl_version = :TLSv1
     # If you use VERIFY_NONE, you are removing the trust feature of TLS. Don't do that.
     # Encryption without trust means you don't know who you are talking to.
     sslcontext.verify_mode = OpenSSL::SSL::VERIFY_PEER
-    # TODO(sissel): Try to be smart about setting this default.
-    sslcontext.ca_path = "/etc/ssl/certs"
+    sslcontext.ssl_version = :TLSv1
+    sslcontext.cert_store = options[:certificate_store]
     @socket = OpenSSL::SSL::SSLSocket.new(@socket, sslcontext)
 
     # TODO(sissel): Set up local certificat/key stuff. This is required for
     # server-side ssl operation, I think.
 
     if client?
-      do_secure(:connect_nonblock)
+      do_secure(:connect_nonblock, options[:timeout])
     else
-      do_secure(:accept_nonblock)
+      do_secure(:accept_nonblock, options[:timeout])
     end
   end # def secure
 
@@ -313,7 +321,7 @@ class FTW::Connection
   # @param [Symbol] handshake_method The method to call on the socket to
   #   complete the ssl handshake. See OpenSSL::SSL::SSLSocket#connect_nonblock
   #   of #accept_nonblock for more details
-  def do_secure(handshake_method)
+  def do_secure(handshake_method, timeout=nil)
     # SSLSocket#connect_nonblock will do the SSL/TLS handshake.
     # TODO(sissel): refactor this into a method that both secure and connect
     # methods can call.

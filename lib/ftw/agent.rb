@@ -6,6 +6,7 @@ require "ftw/pool"
 require "ftw/websocket"
 require "addressable/uri"
 require "cabin"
+require "openssl"
 
 # This should act as a proper web agent.
 #
@@ -36,6 +37,16 @@ require "cabin"
 # TODO(sissel): TBD: implement cookies... delicious chocolate chip cookies.
 class FTW::Agent
   include FTW::Protocol
+  require "ftw/agent/configuration"
+  include FTW::Agent::Configuration
+
+  class TooManyRedirects < StandardError
+    attr_accessor :response
+    def initialize(reason, response)
+      super(reason)
+      @response = response
+    end
+  end
 
   # List of standard HTTP methods described in RFC2616
   STANDARD_METHODS = %w(options get head post put delete trace connect)
@@ -48,7 +59,15 @@ class FTW::Agent
     @pool = FTW::Pool.new
     @logger = Cabin::Channel.get
 
-    @redirect_max = 20
+    configuration[REDIRECTION_LIMIT] = 20
+
+    @certificate_store = OpenSSL::X509::Store.new
+    @certificate_store.add_file("/etc/ssl/certs/ca-bundle.trust.crt")
+    @certificate_store.verify_callback = proc do |*args|
+      p :verify_callback => args
+      true
+    end
+
   end # def initialize
 
   # Define all the standard HTTP methods (Per RFC2616)
@@ -139,6 +158,10 @@ class FTW::Agent
       end
     end
 
+    if options.include?(:body)
+      request.body = options[:body]
+    end
+
     return request
   end # def request
 
@@ -160,15 +183,15 @@ class FTW::Agent
       p :error => error
       raise error
     end
-    connection.secure if request.protocol == "https"
+
+    if request.protocol == "https"
+      connection.secure(:certificate_store => @certificate_store)
+    end
     response = request.execute(connection)
 
     redirects = 0
+    # Follow redirects
     while response.redirect? and response.headers.include?("Location")
-      redirects += 1
-      if redirects > @redirect_max
-        # TODO(sissel): Abort somehow...
-      end
       # RFC2616 section 10.3.3 indicates HEAD redirects must not include a
       # body. Otherwise, the redirect response can have a body, so let's
       # throw it away.
@@ -178,15 +201,24 @@ class FTW::Agent
       elsif response.content?
         # Throw away the body
         response.body = connection
-        # read_body will release the connection
+        # read_body will consume the body and release this connection
         response.read_body { |chunk| }
       end
 
       # TODO(sissel): If this response has any cookies, store them in the
       # agent's cookie store
 
-      @logger.debug("Redirecting", :location => response.headers["Location"])
       redirects += 1
+      if redirects > configuration[REDIRECTION_LIMIT]
+        # TODO(sissel): include original a useful debugging information like
+        # the trace of redirections, etc.
+        raise TooManyRedirects.new("Redirect more than " \
+            "#{configuration[REDIRECTION_LIMIT]} times, aborting.", response)
+        # I don't like this api from FTW::Agent. I think 'get' and other methods
+        # should return (object, error), and if there's an error 
+      end
+
+      @logger.debug("Redirecting", :location => response.headers["Location"])
       request.use_uri(response.headers["Location"])
       connection, error = connect(request.headers["Host"], request.port)
       # TODO(sissel): Do better error handling than raising.
@@ -194,9 +226,11 @@ class FTW::Agent
         p :error => error
         raise error
       end
-      connection.secure if request.protocol == "https"
+      if request.protocol == "https"
+        connection.secure(:certificate_store => @certificate_store)
+      end
       response = request.execute(connection)
-    end
+    end # while being redirected
 
     # RFC 2616 section 9.4, HEAD requests MUST NOT have a message body.
     if request.method != "HEAD"
@@ -249,5 +283,9 @@ class FTW::Agent
     return connection, nil
   end # def connect
 
+  # TODO(sissel): Implement methods for managing the certificate store
+  # TODO(sissel): Implement methods for managing the cookie store
+  # TODO(sissel): Implement methods for managing the cache
+  # TODO(sissel): Implement configuration stuff? Is FTW::Agent::Configuration the best way?
   public(:initialize, :execute, :websocket!, :upgrade!, :shutdown)
 end # class FTW::Agent
