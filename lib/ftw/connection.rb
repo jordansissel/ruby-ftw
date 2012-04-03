@@ -150,13 +150,18 @@ class FTW::Connection
       # the documentation says to use this IO::WaitWritable thing...
       # I don't get it, but whatever :(
 
-      if writable?(timeout)
+      writable = writable?(timeout)
+
+      # http://jira.codehaus.org/browse/JRUBY-6528; IO.select doesn't behave correctly
+      # on JRuby < 1.7, so work around it.
+      if writable || (RUBY_PLATFORM == "java" and JRUBY_VERSION < "1.7.0")
         begin
           @socket.connect_nonblock(sockaddr) # check connection failure
         rescue Errno::EISCONN 
           # Ignore, we're already connected.
         rescue Errno::ECONNREFUSED => e
           # Fire 'disconnected' event with reason :refused
+          @socket.close
           return ConnectRefused.new("#{host}[#{@remote_address}]:#{port}")
         rescue Errno::ETIMEDOUT
           # This occurs when the system's TCP timeout hits, we have no control
@@ -164,11 +169,16 @@ class FTW::Connection
           # for this, but I haven't checked..
           # TODO(sissel): We should instead do 'retry' unless we've exceeded
           # the timeout.
+          @socket.close
+          return ConnectTimeout.new("#{host}[#{@remote_address}]:#{port}")
+        rescue Errno::EINPROGRESS
+          # If we get here, it's likely JRuby version < 1.7.0. EINPROGRESS at
+          # this point in the code means that we have timed out.
+          @socket.close
           return ConnectTimeout.new("#{host}[#{@remote_address}]:#{port}")
         end
       else
-        # Connection timeout
-        # Fire 'disconnected' event with reason :timeout
+        # Connection timeout;
         return ConnectTimeout.new("#{host}[#{@remote_address}]:#{port}")
       end
     end
