@@ -54,6 +54,11 @@ module FTW::HTTP::Message
     # TODO(sissel): if it's an IO object, set Transfer-Encoding to chunked
     # TODO(sissel): if it responds to each or appears to be Enumerable, then
     # set Transfer-Encoding to chunked.
+    if message_body.is_a?(IO)
+      headers["Transfer-Encoding"] = "chunked"
+    else
+      headers["Content-Length"] = message_body.length
+    end
     @body = message_body
   end # def body=
 
@@ -83,7 +88,7 @@ module FTW::HTTP::Message
 
   # Does this message have a body?
   def body?
-    return @body.nil?
+    return !@body.nil?
   end # def body?
 
   # Set the HTTP version. Must be a valid version. See VALID_VERSIONS.
