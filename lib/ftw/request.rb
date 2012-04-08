@@ -84,6 +84,7 @@ class FTW::Request
       # TODO(sissel): Rescue specific exceptions, not just anything.
       # Reconnect and retry
       if tries > 0
+        tries -= 1
         connection.connect
         retry
       else
