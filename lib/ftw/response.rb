@@ -88,66 +88,6 @@ class FTW::Response
   # Define the Message's start_line as status_line
   alias_method :start_line, :status_line
 
-  # Read the body of this Response. The block is called with chunks of the
-  # response as they are read in.
-  #
-  # This method is generally only called by http clients, not servers.
-  def read_body(&block)
-    if @body.respond_to?(:read)
-      if headers.include?("Content-Length") and headers["Content-Length"].to_i > 0
-        @logger.debug("Reading body with Content-Length")
-        read_body_length(headers["Content-Length"].to_i, &block)
-      elsif headers["Transfer-Encoding"] == "chunked"
-        @logger.debug("Reading body with chunked encoding")
-        read_body_chunked(&block)
-      end
-
-      # If this is a poolable resource, release it (like a FTW::Connection)
-      @body.release if @body.respond_to?(:release)
-    elsif !@body.nil?
-      yield @body
-    end
-  end # def read_body
-
-  # Read the length bytes from the body. Yield each chunk read to the block
-  # given. This method is generally only called by http clients, not servers.
-  def read_body_length(length, &block)
-    remaining = length
-    while remaining > 0
-      data = @body.read
-      @logger.debug("Read bytes", :length => data.size)
-      if data.size > remaining
-        # Read too much data, only wanted part of this. Push the rest back.
-        yield data[0..remaining]
-        remaining = 0
-        @body.pushback(data[remaining .. -1]) if remaining < 0
-      else
-        yield data
-        remaining -= data.size
-      end
-    end
-  end # def read_body_length
-
-  # This is kind of messed, need to fix it.
-  def read_body_chunked(&block)
-    parser = HTTP::Parser.new
-
-    # Fake fill-in the response we've already read into the parser.
-    parser << to_s
-    parser << CRLF
-    parser.on_body = block
-    done = false
-    parser.on_message_complete = proc { done = true }
-
-    while !done # will break on special conditions below
-      data = @body.read
-      offset = parser << data
-      if offset != data.length
-        raise "Parser dis not consume all data read?"
-      end
-    end
-  end # def read_body_chunked
-
   # Is this Response the result of a successful Upgrade request?
   def upgrade?
     return false unless status == 101 # "Switching Protocols"
@@ -156,6 +96,6 @@ class FTW::Response
   end # def upgrade?
 
   public(:status=, :status, :reason, :initialize, :upgrade?, :redirect?,
-         :error?, :status_line, :read_body)
+         :error?, :status_line)
 end # class FTW::Response
 

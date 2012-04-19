@@ -92,5 +92,66 @@ module FTW::Protocol
     end
   end # def write_http_body_normal
 
-  public(:read_http_message)
+  # Read the body of this message. The block is called with chunks of the
+  # response as they are read in.
+  #
+  # This method is generally only called by http clients, not servers.
+  def read_http_body(&block)
+    if @body.respond_to?(:read)
+      if headers.include?("Content-Length") and headers["Content-Length"].to_i > 0
+        @logger.debug("Reading body with Content-Length")
+        read_http_body_length(headers["Content-Length"].to_i, &block)
+      elsif headers["Transfer-Encoding"] == "chunked"
+        @logger.debug("Reading body with chunked encoding")
+        read_http_body_chunked(&block)
+      end
+
+      # If this is a poolable resource, release it (like a FTW::Connection)
+      @body.release if @body.respond_to?(:release)
+    elsif !@body.nil?
+      yield @body
+    end
+  end # def read_http_body
+
+  # Old api compat
+  alias_method :read_body, :read_http_body
+
+  # Read the length bytes from the body. Yield each chunk read to the block
+  # given. This method is generally only called by http clients, not servers.
+  def read_http_body_length(length, &block)
+    remaining = length
+    while remaining > 0
+      data = @body.read
+      @logger.debug("Read bytes", :length => data.size)
+      if data.size > remaining
+        # Read too much data, only wanted part of this. Push the rest back.
+        yield data[0..remaining]
+        remaining = 0
+        @body.pushback(data[remaining .. -1]) if remaining < 0
+      else
+        yield data
+        remaining -= data.size
+      end
+    end
+  end # def read_http_body_length
+
+  # This is kind of messed, need to fix it.
+  def read_http_body_chunked(&block)
+    parser = HTTP::Parser.new
+
+    # Fake fill-in the response we've already read into the parser.
+    parser << to_s
+    parser << CRLF
+    parser.on_body = block
+    done = false
+    parser.on_message_complete = proc { done = true }
+
+    while !done # will break on special conditions below
+      data = @body.read
+      offset = parser << data
+      if offset != data.length
+        raise "Parser dis not consume all data read?"
+      end
+    end
+  end # def read_http_body_chunked
 end # module FTW::Protocol

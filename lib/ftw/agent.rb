@@ -204,7 +204,7 @@ class FTW::Agent
         # Throw away the body
         response.body = connection
         # read_body will consume the body and release this connection
-        response.read_body { |chunk| }
+        response.read_http_body { |chunk| }
       end
 
       # TODO(sissel): If this response has any cookies, store them in the

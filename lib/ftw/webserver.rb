@@ -66,7 +66,7 @@ class FTW::WebServer
   def handle_request(request, connection)
     response = FTW::Response.new
     response.version = request.version
-    response["Connection"] = request["Connection"]
+    response["Connection"] = request.headers.fetch("Connection", "close")
 
     # Process this request with the handler
     @handler.call(request, response, connection)
