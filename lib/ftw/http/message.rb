@@ -33,7 +33,7 @@ module FTW::HTTP::Message
   #
   # @param [String] the name of the field. (case insensitive)
   def [](field)
-    return @headers[header]
+    return @headers[field]
   end # def []
 
   # Set a header field
@@ -41,7 +41,7 @@ module FTW::HTTP::Message
   # @param [String] the name of the field. (case insensitive)
   # @param [String] the value to set for this field
   def []=(field, value)
-    @headers[field] = header
+    @headers[field] = value
   end # def []=
 
   # Set the body of this message
@@ -54,7 +54,7 @@ module FTW::HTTP::Message
     # TODO(sissel): if it's an IO object, set Transfer-Encoding to chunked
     # TODO(sissel): if it responds to each or appears to be Enumerable, then
     # set Transfer-Encoding to chunked.
-    if message_body.is_a?(IO)
+    if message_body.is_a?(IO) or message_body.respond_to?(:each)
       headers["Transfer-Encoding"] = "chunked"
     else
       headers["Content-Length"] = message_body.length
