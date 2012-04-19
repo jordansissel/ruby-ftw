@@ -72,13 +72,9 @@ class FTW::Request
     tries = 3
     begin
       connection.write(to_s + CRLF)
-
       if body?
-        if body.is_a?(String)
-          connection.write(body)
-        else
-          connection.write(data) while data = body.read(16384)
-        end
+        write_http_body(body, connection,
+                        headers["Transfer-Encoding"] == "chunked") 
       end
     rescue => e
       # TODO(sissel): Rescue specific exceptions, not just anything.
