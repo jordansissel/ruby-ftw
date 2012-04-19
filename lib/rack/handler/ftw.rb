@@ -202,9 +202,14 @@ class Rack::Handler::FTW
     end
     response.body = body
 
-    connection.write(response.to_s + CRLF)
-    body.each do |chunk|
-      connection.write(chunk)
+    begin
+      connection.write(response.to_s + CRLF)
+      body.each do |chunk|
+        connection.write(chunk)
+      end
+    rescue => e
+      @logger.error(e)
+      connection.disconnect(e.inspect)
     end
   end # def handle_request
 
