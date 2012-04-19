@@ -45,8 +45,6 @@ class FTW::Response
     406 => "Not Acceptable"
   } # STATUS_REASON_MAP
 
-  attr_accessor :body
-
   private
 
   # Create a new Response.
