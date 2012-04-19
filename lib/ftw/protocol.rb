@@ -56,5 +56,41 @@ module FTW::Protocol
     end
   end # def read_http_message
 
+  def write_http_body(body, io, chunked=false)
+    if chunked
+      write_http_body_chunked(body, io)
+    else
+      write_http_body_normal(body, io)
+    end
+  end # def write_http_body
+
+  # Encode the given text as in 'chunked' encoding.
+  def encode_chunked(text)
+    return sprintf("%x\n%s\n", text.size, text)
+  end # def encode_chunked
+
+  def write_http_body_chunked(body, io)
+    if body.is_a?(String)
+      io.write(encode_chunked(body))
+    elsif body.respond_to?(:read)
+      true while io.write(encode_chunked(body.read(16384)))
+    elsif body.respond_to?(:each)
+      body.each { |s| io.write(encode_chunked(s)) }
+    end
+
+    # The terminating chunk is an empty one.
+    io.write(encode_chunked(""))
+  end # def write_http_body_chunked
+
+  def write_http_body_normal(body, io)
+    if body.is_a?(String)
+      io.write(body)
+    elsif body.respond_to?(:read)
+      true while io.write(body.read(16384))
+    elsif body.respond_to?(:each)
+      body.each { |s| io.write(s) }
+    end
+  end # def write_http_body_normal
+
   public(:read_http_message)
 end # module FTW::Protocol
