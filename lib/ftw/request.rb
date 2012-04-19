@@ -56,6 +56,7 @@ class FTW::Request
     @protocol = "http"
     @version = 1.1
     use_uri(uri) if !uri.nil?
+    @logger = Cabin::Channel.get
   end # def initialize
 
   # Execute this request on a given connection: Writes the request, returns a

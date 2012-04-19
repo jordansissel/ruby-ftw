@@ -14,6 +14,7 @@ class FTW::WebServer
     @port = port
     @handler = block
 
+    @logger = Cabin::Channel.get
     @threads = []
   end # def initialize
 
@@ -50,6 +51,10 @@ class FTW::WebServer
         break
       end
 
+      if request["Content-Length"] || request["Transfer-Encoding"]
+        request.body = connection
+      end
+
       begin
         handle_request(request, connection)
       rescue => e
@@ -66,7 +71,7 @@ class FTW::WebServer
   def handle_request(request, connection)
     response = FTW::Response.new
     response.version = request.version
-    response["Connection"] = request.headers.fetch("Connection", "close")
+    response["Connection"] = request.headers["Connection"] || "close"
 
     # Process this request with the handler
     @handler.call(request, response, connection)

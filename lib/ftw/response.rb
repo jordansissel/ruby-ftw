@@ -1,4 +1,5 @@
 require "ftw/namespace"
+require "ftw/protocol"
 require "ftw/http/message"
 require "cabin" # gem cabin
 require "http/parser" # gem http_parser.rb
@@ -8,6 +9,7 @@ require "http/parser" # gem http_parser.rb
 # See RFC2616 section 6: <http://tools.ietf.org/html/rfc2616#section-6>
 class FTW::Response 
   include FTW::HTTP::Message
+  include FTW::Protocol
 
   # The http status code (RFC2616 6.1.1)
   # See RFC2616 section 6.1.1: <http://tools.ietf.org/html/rfc2616#section-6.1.1>

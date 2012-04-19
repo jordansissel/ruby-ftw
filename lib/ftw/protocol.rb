@@ -1,9 +1,12 @@
 require "ftw/namespace"
+require "ftw/crlf"
 require "cabin"
 require "logger"
 
 # This module provides web protocol handling as a mixin.
 module FTW::Protocol
+  include FTW::CRLF
+
   # Read an HTTP message from a given connection
   #
   # This method blocks until a full http message header has been consumed
@@ -66,12 +69,14 @@ module FTW::Protocol
 
   # Encode the given text as in 'chunked' encoding.
   def encode_chunked(text)
-    return sprintf("%x\n%s\n", text.size, text)
+    return sprintf("%x%s%s%s", text.size, CRLF, text, CRLF)
   end # def encode_chunked
 
   def write_http_body_chunked(body, io)
     if body.is_a?(String)
       io.write(encode_chunked(body))
+    elsif body.respond_to?(:sysread)
+      true while io.write(encode_chunked(body.sysread(16384)))
     elsif body.respond_to?(:read)
       true while io.write(encode_chunked(body.read(16384)))
     elsif body.respond_to?(:each)
@@ -150,7 +155,7 @@ module FTW::Protocol
       data = @body.read
       offset = parser << data
       if offset != data.length
-        raise "Parser dis not consume all data read?"
+        raise "Parser did not consume all data read?"
       end
     end
   end # def read_http_body_chunked
