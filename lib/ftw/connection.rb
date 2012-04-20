@@ -249,16 +249,20 @@ class FTW::Connection
 
   # End this connection, specifying why.
   def disconnect(reason)
-    begin 
-      @socket.close_read
-    rescue IOError => e
-      # Ignore, perhaps we shouldn't ignore.
-    end
+    if @socket.is_a?(OpenSSL::SSL::SSLSocket)
+      @socket.sysclose()
+    else
+      begin 
+        @socket.close_read
+      rescue IOError => e
+        # Ignore, perhaps we shouldn't ignore.
+      end
 
-    begin 
-      @socket.close_write
-    rescue IOError => e
-      # Ignore, perhaps we shouldn't ignore.
+      begin 
+        @socket.close_write
+      rescue IOError => e
+        # Ignore, perhaps we shouldn't ignore.
+      end
     end
   end # def disconnect
 
