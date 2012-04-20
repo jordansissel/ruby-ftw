@@ -107,6 +107,9 @@ class FTW::Request
     # uri.password
     # uri.user
     @request_uri = uri.path
+    # Include the query string, too.
+    @request_uri += "?#{uri.query}" if !uri.query.nil?
+
     @headers.set("Host", uri.host)
     @protocol = uri.scheme
     if uri.port.nil?
