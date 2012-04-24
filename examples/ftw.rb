@@ -9,14 +9,13 @@ if ARGV.length != 1
   exit 1
 end
 
+logger = Cabin::Channel.get
+logger.level=:info
+logger.subscribe(STDOUT)
+
 agent = FTW::Agent.new
-url = ARGV[0]
 
-logger = Cabin::Channel.new
-logger.subscribe(Logger.new(STDOUT))
-
-# Fetch the url 5 times, demonstrating connection reuse, etc.
-5.times do
+ARGV.each do |url|
   logger.time("Fetch #{url}") do
     response = agent.get!(url)
     bytes = 0
@@ -25,7 +24,4 @@ logger.subscribe(Logger.new(STDOUT))
     end
     logger.info("Request complete", :body_length => bytes)
   end
-
-  # Be nice, slow down.
-  sleep 1
 end
