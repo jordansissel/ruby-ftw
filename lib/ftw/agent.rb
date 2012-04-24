@@ -100,9 +100,13 @@ class FTW::Agent
         # happens to be the default.
 
         puts "Untrusted certificate found; here's what I know:"
-        puts "  Address: #{host}:#{port}"
+        puts "  Why it's untrusted: (#{context.error}) #{context.error_string}"
+        puts "  What you think it's for: #{host} (port #{port})"
+        cn = context.chain[0].subject.to_s.split("/").grep(/^CN=/).first.split("=",2).last rescue "<unknown, no CN?>"
+        puts "  What it's actually for: #{cn}"
+        puts "  Full chain:"
         context.chain.each_with_index do |cert, i|
-          puts "  Subject(#{i}): #{cert.subject}"
+          puts "    Subject(#{i}): #{cert.subject}"
         end
         print "Trust? [(N)o/(Y)es/(P)ersistent] "
 
