@@ -300,19 +300,28 @@ class FTW::Connection
   #
   # * :certificate_store, an OpenSSL::X509::Store
   # * :timeout, a timeout threshold in seconds.
-  def secure(options={})
+  def secure(options=nil)
     # Skip this if we're already secure.
     return if secured?
 
-    options[:timeout] ||= nil
-    options[:certificate_store] ||= OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE
+    defaults = {
+      :timeout => nil,
+      #:certificate_store => OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE
+    }
+    settings = defaults.merge(options) unless options.nil?
 
-    @logger.info("Securing this connection", :peer => peer)
+    @logger.info("Securing this connection", :peer => peer, :options => settings)
     # Wrap this connection with TLS/SSL
     sslcontext = OpenSSL::SSL::SSLContext.new
     # If you use VERIFY_NONE, you are removing the trust feature of TLS. Don't do that.
     # Encryption without trust means you don't know who you are talking to.
     sslcontext.verify_mode = OpenSSL::SSL::VERIFY_PEER
+    sslcontext.verify_callback = proc do |*args| 
+      @logger.debug("Verify peer via FTW::Connection#secure", :callback => settings[:verify_callback])
+      if settings[:verify_callback].respond_to?(:call)
+        settings[:verify_callback].call(*args)
+      end
+    end
     sslcontext.ssl_version = :TLSv1
     sslcontext.cert_store = options[:certificate_store]
     @socket = OpenSSL::SSL::SSLSocket.new(@socket, sslcontext)

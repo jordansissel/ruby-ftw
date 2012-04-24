@@ -64,13 +64,101 @@ class FTW::Agent
     configuration[REDIRECTION_LIMIT] = 20
 
     @certificate_store = OpenSSL::X509::Store.new
-    @certificate_store.add_file("/etc/ssl/certs/ca-bundle.trust.crt")
-    @certificate_store.verify_callback = proc do |*args|
-      p :verify_callback => args
-      true
+    if File.readable?(OpenSSL::X509::DEFAULT_CERT_FILE)
+      @logger.debug("Adding default certificate file",
+                    :path => OpenSSL::X509::DEFAULT_CERT_FILE)
+      @certificate_store.add_file(OpenSSL::X509::DEFAULT_CERT_FILE)
     end
 
+    # Handle the local user/app trust store as well.
+    if File.directory?(configuration[SSL_TRUST_STORE])
+      # This is a directory, so use add_path
+      @logger.debug("Adding SSL_TRUST_STORE",
+                    :path => configuration[SSL_TRUST_STORE])
+      @certificate_store.add_path(configuration[SSL_TRUST_STORE])
+    end
+
+    # TODO(sissel): Add custom paths for ssl certs
   end # def initialize
+
+  # Verify a certificate.
+  #
+  # host => the host (string)
+  # port => the port (number)
+  # verified => true/false, was this cert verified by our certificate store?
+  # context => an OpenSSL::SSL::StoreContext
+  def certificate_verify(host, port, verified, context)
+    # Now verify the entire chain.
+    begin
+      @logger.debug("Verify peer via OpenSSL::X509::Store",
+                    :verified => verified, :chain => context.chain.collect { |c| c.subject },
+                    :context => context, :depth => context.error_depth,
+                    :error => context.error, :string => context.error_string)
+      # Untrusted certificate; prompt to accept if possible.
+      if !verified and STDOUT.tty?
+        # TODO(sissel): Factor this out into a verify callback where this
+        # happens to be the default.
+
+        puts "Untrusted certificate found; here's what I know:"
+        puts "  Address: #{host}:#{port}"
+        context.chain.each_with_index do |cert, i|
+          puts "  Subject(#{i}): #{cert.subject}"
+        end
+        print "Trust? [(N)o/(Y)es/(P)ersistent] "
+
+        system("stty raw")
+        answer = $stdin.getc.downcase
+        system("stty sane")
+        puts
+
+        if ["y", "p"].include?(answer)
+          # TODO(sissel): Factor this out into Agent::Trust or somesuch
+          context.chain.each do |cert|
+            # For each certificate, add it to the in-process certificate store.
+            begin
+              @certificate_store.add_cert(cert)
+            rescue OpenSSL::X509::StoreError => e
+              # If the cert is already trusted, move along.
+              if e.to_s != "cert already in hash table" 
+                raise # this is a real error, reraise.
+              end
+            end
+
+            # TODO(sissel): Factor this out into Agent::Trust or somesuch
+            # For each certificate, if persistence is requested, write the cert to
+            # the configured ssl trust store (usually ~/.ftw/ssl-trust.db/) 
+            if answer == "p" # persist this trusted cert
+              require "fileutils"
+              if !File.directory?(configuration[SSL_TRUST_STORE])
+                FileUtils.mkdir_p(configuration[SSL_TRUST_STORE])
+              end
+
+              # openssl verify recommends the 'ca path' have files named by the
+              # hashed subject name. Turns out openssl really expects the
+              # hexadecimal version of this.
+              name = File.join(configuration[SSL_TRUST_STORE], cert.subject.hash.to_s(16))
+              # Find a filename that doesn't exist.
+              num = 0
+              num += 1 while File.exists?("#{name}.#{num}")
+
+              # Write it out
+              path = "#{name}.#{num}"
+              @logger.info("Persisting certificate", :subject => cert.subject, :path => path)
+              File.write(path, cert.to_pem)
+            end # if answer == "p"
+          end # context.chain.each
+          return true
+        end # if answer was "y" or "p"
+      end # if !verified and stdout is a tty
+
+      return verified
+    rescue => e
+      # We have to rescue all and emit because openssl verify_callback ignores
+      # exceptions silently
+      @logger.error(e)
+      return verified
+    end
+  end # def certificate_verify
 
   # Define all the standard HTTP methods (Per RFC2616)
   # As an example, for "get" method, this will define these methods:
@@ -180,14 +268,10 @@ class FTW::Agent
   def execute(request)
     # TODO(sissel): Make redirection-following optional, but default.
 
-    connection, error = connect(request.headers["Host"], request.port)
+    connection, error = connect(request.headers["Host"], request.port, request.protocol == "https")
     if !error.nil?
       p :error => error
       raise error
-    end
-
-    if request.protocol == "https"
-      connection.secure(:certificate_store => @certificate_store)
     end
     response = request.execute(connection)
 
@@ -222,14 +306,11 @@ class FTW::Agent
 
       @logger.debug("Redirecting", :location => response.headers["Location"])
       request.use_uri(response.headers["Location"])
-      connection, error = connect(request.headers["Host"], request.port)
+      connection, error = connect(request.headers["Host"], request.port, request.protocol == "https")
       # TODO(sissel): Do better error handling than raising.
       if !error.nil?
         p :error => error
         raise error
-      end
-      if request.protocol == "https"
-        connection.secure(:certificate_store => @certificate_store)
       end
       response = request.execute(connection)
     end # while being redirected
@@ -258,10 +339,11 @@ class FTW::Agent
   end # def shutdown
 
   # Returns a FTW::Connection connected to this host:port.
-  def connect(host, port)
+  def connect(host, port, secure=false)
     address = "#{host}:#{port}"
     @logger.debug("Fetching from pool", :address => address)
     error = nil
+
     connection = @pool.fetch(address) do
       @logger.info("New connection to #{address}")
       connection = FTW::Connection.new(address)
@@ -282,6 +364,20 @@ class FTW::Agent
 
     @logger.debug("Pool fetched a connection", :connection => connection)
     connection.mark
+
+    if secure
+      # Curry a certificate_verify callback for this connection.
+      verify_callback = proc do |verified, context|
+        begin
+          certificate_verify(host, port, verified, context)
+        rescue => e
+          @logger.error("Error in certificate_verify call", :exception => e)
+        end
+      end
+      connection.secure(:certificate_store => @certificate_store,
+                        :verify_callback => verify_callback)
+    end # if secure
+
     return connection, nil
   end # def connect
 
