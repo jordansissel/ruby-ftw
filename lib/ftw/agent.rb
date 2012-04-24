@@ -68,6 +68,10 @@ class FTW::Agent
       @logger.debug("Adding default certificate file",
                     :path => OpenSSL::X509::DEFAULT_CERT_FILE)
       @certificate_store.add_file(OpenSSL::X509::DEFAULT_CERT_FILE)
+    else
+      # Use some better defaults from http://curl.haxx.se/docs/caextract.html
+      @logger.info("Using upstream ssl certs, possibly untrusty.")
+      @certificate_store.add_file(File.join(File.dirname(__FILE__), "cacert.pem"))
     end
 
     # Handle the local user/app trust store as well.
@@ -101,12 +105,19 @@ class FTW::Agent
 
         puts "Untrusted certificate found; here's what I know:"
         puts "  Why it's untrusted: (#{context.error}) #{context.error_string}"
-        puts "  What you think it's for: #{host} (port #{port})"
-        cn = context.chain[0].subject.to_s.split("/").grep(/^CN=/).first.split("=",2).last rescue "<unknown, no CN?>"
-        puts "  What it's actually for: #{cn}"
+
+        if context.error_string =~ /local issuer/
+          puts "  Missing cert for issuer: #{context.current_cert.issuer}"
+          puts "  Issuer hash: #{context.current_cert.issuer.hash.to_s(16)}"
+        else
+          puts "  What you think it's for: #{host} (port #{port})"
+          cn = context.chain[0].subject.to_s.split("/").grep(/^CN=/).first.split("=",2).last rescue "<unknown, no CN?>"
+          puts "  What it's actually for: #{cn}"
+        end
+
         puts "  Full chain:"
         context.chain.each_with_index do |cert, i|
-          puts "    Subject(#{i}): #{cert.subject}"
+          puts "    Subject(#{i}): [#{cert.subject.hash.to_s(16)}] #{cert.subject}"
         end
         print "Trust? [(N)o/(Y)es/(P)ersistent] "
 
