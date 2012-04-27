@@ -54,12 +54,16 @@ module FTW::HTTP::Message
     # TODO(sissel): if it's an IO object, set Transfer-Encoding to chunked
     # TODO(sissel): if it responds to each or appears to be Enumerable, then
     # set Transfer-Encoding to chunked.
-    if message_body.respond_to?(:read) or message_body.respond_to?(:each)
+    @body = message_body
+
+    # don't set any additional length/encoding headers if they are already set.
+    return if headers.include?("Content-Length") or headers.include?("Transfer-Encoding")
+
+    if (message_body.respond_to?(:read) or message_body.respond_to?(:each)) and
       headers["Transfer-Encoding"] = "chunked"
     else
       headers["Content-Length"] = message_body.length
     end
-    @body = message_body
   end # def body=
 
   # Get the body of this message
