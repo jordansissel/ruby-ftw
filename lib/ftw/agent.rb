@@ -236,7 +236,7 @@ class FTW::Agent
     end
   end # def websocket!
 
-  # Make a request. Returns a FTW::Request object.
+  # Build a request. Returns a FTW::Request object.
   #
   # Arguments:
   #
@@ -283,7 +283,8 @@ class FTW::Agent
   def execute(request)
     # TODO(sissel): Make redirection-following optional, but default.
 
-    connection, error = connect(request.headers["Host"], request.port, request.protocol == "https")
+    connection, error = connect(request.headers["Host"], request.port,
+                                request.protocol == "https")
     if !error.nil?
       p :error => error
       raise error
