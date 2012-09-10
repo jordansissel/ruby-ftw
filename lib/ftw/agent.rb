@@ -401,5 +401,5 @@ class FTW::Agent
   # TODO(sissel): Implement methods for managing the cookie store
   # TODO(sissel): Implement methods for managing the cache
   # TODO(sissel): Implement configuration stuff? Is FTW::Agent::Configuration the best way?
-  public(:initialize, :execute, :websocket!, :upgrade!, :shutdown)
+  public(:initialize, :execute, :websocket!, :upgrade!, :shutdown, :request)
 end # class FTW::Agent
