@@ -9,14 +9,9 @@ describe "WebSockets" do
 
   let (:rack) do
     # Listen on a random port
-    tries = 10
-    begin
+    Stud.try(10.times) do
       @port = rand(20000) + 1000
       Rack::Handler::FTW.new(app, :Host => "127.0.0.1", :Port => @port)
-    rescue
-      tries -= 1
-      retry if tries > 0
-      raise
     end
   end # let rack
 
@@ -49,8 +44,8 @@ describe "WebSockets" do
     subject do
       ws = nil
       Stud::try(5.times) do
+        puts address
         ws = agent.websocket!("http://#{address}/websocket")
-        p :ws => ws
         insist { ws }.is_a?(FTW::WebSocket)
       end
       ws

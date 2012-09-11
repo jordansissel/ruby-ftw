@@ -1,6 +1,7 @@
 require "sinatra/base"
 require "ftw/websocket/rack"
 
+Thread.abort_on_exception = true
 class Fixtures; class WebEcho < Sinatra::Base
   get "/" do
     [ 200, {"Content-Type" => "text/json"}, params.to_json ]
