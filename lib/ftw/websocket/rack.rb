@@ -105,6 +105,17 @@ class FTW::WebSocket::Rack
   #     end
   def each
     connection = @env["ftw.connection"]
+    # There seems to be a bug in http_parser.rb where websocket responses
+    # lead with a newline for some reason.  It's like the header terminator
+    # CRLF still has the LF character left in the buffer. Work around it.
+    data = connection.read
+    if data[0] == "\n"
+      puts "WORKAROUND AHCK"
+      connection.pushback(data[1..-1])
+    else
+      connection.pushback(data)
+    end
+
     while true
       begin
         data = connection.read(16384)
