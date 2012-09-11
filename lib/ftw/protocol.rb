@@ -114,12 +114,25 @@ module FTW::Protocol
       # If this is a poolable resource, release it (like a FTW::Connection)
       @body.release if @body.respond_to?(:release)
     elsif !@body.nil?
-      yield @body
+      block.call(@body)
     end
   end # def read_http_body
 
-  # Old api compat
-  alias_method :read_body, :read_http_body
+  # Read the body of this message. The block is called with chunks of the
+  # response as they are read in.
+  #
+  # This method is generally only called by http clients, not servers.
+  #
+  # If no block is given, the entire response body is returned as a string.
+  def read_body(&block)
+    if !block_given?
+      content = ""
+      read_http_body { |chunk| content << chunk }
+      return content
+    else
+      read_http_body(&block)
+    end
+  end # def read_body
 
   # Read the length bytes from the body. Yield each chunk read to the block
   # given. This method is generally only called by http clients, not servers.
