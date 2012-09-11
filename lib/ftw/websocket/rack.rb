@@ -110,7 +110,6 @@ class FTW::WebSocket::Rack
     # CRLF still has the LF character left in the buffer. Work around it.
     data = connection.read
     if data[0] == "\n"
-      puts "WORKAROUND AHCK"
       connection.pushback(data[1..-1])
     else
       connection.pushback(data)

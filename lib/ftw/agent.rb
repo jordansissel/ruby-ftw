@@ -237,7 +237,6 @@ class FTW::Agent
       # CRLF still has the LF character left in the buffer. Work around it.
       data = response.body.read
       if data[0] == "\n"
-        puts "WORKAROUND AHCK"
         response.body.pushback(data[1..-1])
       else
         response.body.pushback(data)
