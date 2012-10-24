@@ -185,15 +185,16 @@ class FTW::Agent
   # The second does the execute for you and returns a FTW::Response.
   # 
   # For a full list of these available methods, see STANDARD_METHODS.
+  #
   STANDARD_METHODS.each do |name|
     m = name.upcase
 
-    # define 'get' etc method.
+    # 'def get' (put, post, etc)
     define_method(name.to_sym) do |uri, options={}|
       return request(m, uri, options)
     end
 
-    # define 'get!' etc method.
+    # 'def get!' (put!, post!, etc)
     define_method("#{name}!".to_sym) do |uri, options={}|
       return execute(request(m, uri, options))
     end
