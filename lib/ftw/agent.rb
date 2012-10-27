@@ -71,6 +71,12 @@ class FTW::Agent
     else
       # Use some better defaults from http://curl.haxx.se/docs/caextract.html
       @logger.info("Using upstream ssl certs, possibly untrusty.")
+      default_ca = File.join(File.dirname(__FILE__), "cacert.pem")
+
+      # JRUBY-6870 - strip 'jar:' prefix if it is present.
+      if default_ca =~ /^jar:file.*!/
+        default_ca.gsub!(/^jar:/, "")
+      end
       @certificate_store.add_file(File.join(File.dirname(__FILE__), "cacert.pem"))
     end
 
