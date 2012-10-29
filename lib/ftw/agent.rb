@@ -77,7 +77,7 @@ class FTW::Agent
       if default_ca =~ /^jar:file.*!/
         default_ca.gsub!(/^jar:/, "")
       end
-      @certificate_store.add_file(File.join(File.dirname(__FILE__), "cacert.pem"))
+      @certificate_store.add_file(default_ca)
     end
 
     # Handle the local user/app trust store as well.
