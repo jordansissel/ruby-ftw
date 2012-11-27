@@ -123,7 +123,7 @@ class Rack::Handler::FTW
     while true
       begin
         request = read_http_message(connection)
-      rescue EOFError, Errno::EPIPE, Errno::ECONNRESET, HTTP::Parser::Error
+      rescue IOError, EOFError, Errno::EPIPE, Errno::ECONNRESET, HTTP::Parser::Error
         # Connection EOF'd or errored before we finished reading a full HTTP
         # message, shut it down.
         break
