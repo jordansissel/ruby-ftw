@@ -6,6 +6,7 @@ require "ftw/namespace"
 require "ftw/response"
 require "ftw/protocol"
 require "uri" # ruby stdlib
+require "base64" # ruby stdlib
 
 # An HTTP Request.
 #
@@ -104,6 +105,10 @@ class FTW::Request
 
     # TODO(sissel): Use uri.password and uri.user to set Authorization basic
     # stuff.
+    if uri.password || uri.user
+      encoded = Base64.encode64("#{uri.user}:#{uri.password}")
+      @headers.set("Authorization", "Basic #{encoded}")
+    end
     # uri.password
     # uri.user
     @request_uri = uri.path
