@@ -106,7 +106,7 @@ class FTW::Request
     # TODO(sissel): Use uri.password and uri.user to set Authorization basic
     # stuff.
     if uri.password || uri.user
-      encoded = Base64.encode64("#{uri.user}:#{uri.password}")
+      encoded = Base64.strict_encode64("#{uri.user}:#{uri.password}")
       @headers.set("Authorization", "Basic #{encoded}")
     end
     # uri.password
