@@ -200,6 +200,7 @@ class FTW::WebSocket::Parser
     #    +-------------------------------- - - - - - - - - - - - - - - - +
     @mask = get(@need)
     transition(:payload, @payload_length)
+    return nil
   end # def mask
 
   # State: payload
@@ -232,8 +233,8 @@ class FTW::WebSocket::Parser
       masked << (byte ^ mask_bytes[i % 4])
       i += 1
     end
-    p :unmasked => masked.pack("C*"), :original => message
-    return  masked.pack("C*")
+    #p :unmasked => masked.pack("C*"), :original => message
+    return masked.pack("C*")
   end # def unmask
 
   public(:feed)
