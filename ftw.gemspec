@@ -18,7 +18,6 @@ Gem::Specification.new do |spec|
   spec.summary = spec.description
   spec.license = "Apache License (2.0)"
 
-  spec.add_dependency("json", "~> 1.7.5") # for json
   spec.add_dependency("cabin", ">0") # for logging, latest is fine for now
   spec.add_dependency("http_parser.rb", "0.5.3") # for http request/response parsing
   spec.add_dependency("addressable", "~> 2.3.2")  # because stdlib URI is terrible
