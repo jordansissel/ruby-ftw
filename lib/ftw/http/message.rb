@@ -62,7 +62,7 @@ module FTW::HTTP::Message
     if (message_body.respond_to?(:read) or message_body.respond_to?(:each)) and
       headers["Transfer-Encoding"] = "chunked"
     else
-      headers["Content-Length"] = message_body.length
+      headers["Content-Length"] = message_body.bytesize
     end
   end # def body=
 
