@@ -1,8 +1,6 @@
 # coding: utf-8
 require "rubygems"
 require "addressable/uri"
-require "json"
-require "date"
 
 $: << File.join(File.dirname(__FILE__), "..", "lib")
 require "ftw"
@@ -43,18 +41,13 @@ metrics = Hash.new do |h, k|
   h[k] = m
 end
 
-ages = Hash.new do |h, k| 
-  screen << k
-  h[k] = 0
-end
-
 blocks = []
 %w{ ░ ▒ ▓ █ }.each_with_index do |block, i|
 
   # bleed over on some colors because a block[n] at color m is much darker than block[n+1] 
   8.times do |v|
     color = (i * 6) + v + 232
-    break if color >= 256
+    break if color > 256
     blocks << "\x1b[38;5;#{color}m#{block}\x1b[0m"
   end
 end
@@ -72,47 +65,21 @@ puts blocks.join("")
   #tick
 #end.flatten
 
-#overall = Metriks.meter("-overall-")
+overall = Metriks.meter("-overall-")
+require "date"
 start = Time.now
-#fakehost = Hash.new { |h,k| h[k] = "fringe#{rand(1000)}" }
-count = 0
-while true
+
+hush = Hash.new { |h,k| h[k] = Time.at(0) }
+while true 
   event = queue.pop
-  count += 1
-  host = event["@source_host"]
-  #host = fakehost[event["@source_host"]]
-
   now = Time.now
-  ages[host] # lame hack to append to screen
-  ages[host] = now - DateTime.parse(event["@timestamp"]).to_time
-
-  if count > 10000
-    count = 0
-    # on-screen-order values
-    sov = screen.collect { |host| ages[host] }
-    max = sov.max
-    start = Time.now
-    next if max == 0
-
-    $stdout.write("\x1b[H\x1b[2J")
-    puts "Hosts: #{ages.count}"
-    worst5 = ages.sort_by { |k,v| -v }[0..5]
-    puts "Worst 5 (hours): #{worst5.collect { |host, value| "#{host}(#{"%.1f" % (value / 60.0 / 60)})" }.join(", ") }"
-
-    # Write the legend
-    $stdout.write("Legend: ");
-    (0..5).each do |i|
-      v = (i * (max / 5.0))
-      block = blocks[((blocks.size - 1) * (i / 5.0)).floor]
-      $stdout.write("%s %0.2f     " % [block, v/60/60.0])
-    end
-    puts
-    $stdout.write(sov.collect do |value| 
-      if value < 0
-        "\x1b[1;46m⚉\x1b[0m"
-      else
-        blocks[ ((blocks.size) * (value / max)).floor ] 
-      end
-    end.join(""))
+  age = now - DateTime.parse(event["@timestamp"]).to_time
+  days = (age / 24.0 / 60.0 / 60.0)
+  host = event["@source_host"]
+  if age > 300 && (now - hush[host]) > 10
+    puts age => [event["@fields"]["lumberjack"], event["@source_host"]]
+    hush[host] = now
+    $stdout.flush
   end
 end
+
