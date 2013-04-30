@@ -129,62 +129,67 @@ class FTW::Connection
 
     # Do dns resolution on the host. If there are multiple
     # addresses resolved, return one at random.
-    @remote_address = FTW::DNS.singleton.resolve_random(host)
-    @logger.debug("Connecting", :address => @remote_address,
-                  :host => host, :port => port)
+    addresses = FTW::DNS.singleton.resolve(host)
 
-    # Addresses with colon ':' in them are assumed to be IPv6
-    family = @remote_address.include?(":") ? Socket::AF_INET6 : Socket::AF_INET
-    @socket = Socket.new(family, Socket::SOCK_STREAM, 0)
+    addresses.each do |address|
+      # Try each address until one works.
+      @remote_address = address
+      # Addresses with colon ':' in them are assumed to be IPv6
+      family = @remote_address.include?(":") ? Socket::AF_INET6 : Socket::AF_INET
+      @logger.debug("Connecting", :address => @remote_address,
+                    :host => host, :port => port, :family => family)
+      @socket = Socket.new(family, Socket::SOCK_STREAM, 0)
 
-    # This api is terrible. pack_sockaddr_in? This isn't C, man...
-    @logger.debug("packing", :data => [port.to_i, @remote_address])
-    sockaddr = Socket.pack_sockaddr_in(port.to_i, @remote_address)
-    # TODO(sissel): Support local address binding
+      # This api is terrible. pack_sockaddr_in? This isn't C, man...
+      @logger.debug("packing", :data => [port.to_i, @remote_address])
+      sockaddr = Socket.pack_sockaddr_in(port.to_i, @remote_address)
+      # TODO(sissel): Support local address binding
 
-    # Connect with timeout
-    begin
-      @socket.connect_nonblock(sockaddr)
-    rescue IO::WaitWritable, Errno::EINPROGRESS
-      # Ruby actually raises Errno::EINPROGRESS, but for some reason
-      # the documentation says to use this IO::WaitWritable thing...
-      # I don't get it, but whatever :(
+      # Connect with timeout
+      begin
+        @socket.connect_nonblock(sockaddr)
+      rescue IO::WaitWritable, Errno::EINPROGRESS
+        # Ruby actually raises Errno::EINPROGRESS, but for some reason
+        # the documentation says to use this IO::WaitWritable thing...
+        # I don't get it, but whatever :(
 
-      writable = writable?(timeout)
+        writable = writable?(timeout)
 
-      # http://jira.codehaus.org/browse/JRUBY-6528; IO.select doesn't behave correctly
-      # on JRuby < 1.7, so work around it.
-      if writable || (RUBY_PLATFORM == "java" and JRUBY_VERSION < "1.7.0")
-        begin
-          @socket.connect_nonblock(sockaddr) # check connection failure
-        rescue Errno::EISCONN 
-          # Ignore, we're already connected.
-        rescue Errno::ECONNREFUSED => e
-          # Fire 'disconnected' event with reason :refused
-          @socket.close
-          return ConnectRefused.new("#{host}[#{@remote_address}]:#{port}")
-        rescue Errno::ETIMEDOUT
-          # This occurs when the system's TCP timeout hits, we have no control
-          # over this, as far as I can tell. *maybe* setsockopt(2) has a flag
-          # for this, but I haven't checked..
-          # TODO(sissel): We should instead do 'retry' unless we've exceeded
-          # the timeout.
-          @socket.close
-          return ConnectTimeout.new("#{host}[#{@remote_address}]:#{port}")
-        rescue Errno::EINPROGRESS
-          # If we get here, it's likely JRuby version < 1.7.0. EINPROGRESS at
-          # this point in the code means that we have timed out.
-          @socket.close
+        # http://jira.codehaus.org/browse/JRUBY-6528; IO.select doesn't behave
+        # correctly on JRuby < 1.7, so work around it.
+        if writable || (RUBY_PLATFORM == "java" and JRUBY_VERSION < "1.7.0")
+          begin
+            @socket.connect_nonblock(sockaddr) # check connection failure
+          rescue Errno::EISCONN 
+            # Ignore, we're already connected.
+          rescue Errno::ECONNREFUSED => e
+            # Fire 'disconnected' event with reason :refused
+            @socket.close
+            return ConnectRefused.new("#{host}[#{@remote_address}]:#{port}")
+          rescue Errno::ETIMEDOUT
+            # This occurs when the system's TCP timeout hits, we have no
+            # control over this, as far as I can tell. *maybe* setsockopt(2)
+            # has a flag for this, but I haven't checked..
+            # TODO(sissel): We should instead do 'retry' unless we've exceeded
+            # the timeout.
+            @socket.close
+            return ConnectTimeout.new("#{host}[#{@remote_address}]:#{port}")
+          rescue Errno::EINPROGRESS
+            # If we get here, it's likely JRuby version < 1.7.0. EINPROGRESS at
+            # this point in the code means that we have timed out.
+            @socket.close
+            return ConnectTimeout.new("#{host}[#{@remote_address}]:#{port}")
+          end
+        else
+          # Connection timeout;
           return ConnectTimeout.new("#{host}[#{@remote_address}]:#{port}")
         end
-      else
-        # Connection timeout;
-        return ConnectTimeout.new("#{host}[#{@remote_address}]:#{port}")
-      end
-    end
 
-    # We're now connected.
-    @connected = true
+        # If no error at this point, we're now connected.
+        @connected = true
+        break
+      end # addresses.each
+    end 
     return nil
   end # def connect
 
