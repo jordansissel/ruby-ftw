@@ -22,8 +22,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency("http_parser.rb", "0.5.3") # for http request/response parsing
   spec.add_dependency("addressable")  # because stdlib URI is terrible
   spec.add_dependency("backports", "2.3.0") # for hacking stuff into ruby <1.9
-  spec.add_dependency("minitest", ">0") # for unit tests, latest of this is fine
 
+  spec.add_development_dependency("minitest", ">0") # for unit tests, latest of this is fine
 
   spec.files = files
   spec.require_paths << "lib"
