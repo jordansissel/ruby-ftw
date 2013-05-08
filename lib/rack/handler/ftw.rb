@@ -204,9 +204,7 @@ class Rack::Handler::FTW
 
     begin
       connection.write(response.to_s + CRLF)
-      body.each do |chunk|
-        connection.write(chunk)
-      end
+      write_http_body(body, connection, response["Transfer-Encoding"] == "chunked")
     rescue => e
       @logger.error(e)
       connection.disconnect(e.inspect)
