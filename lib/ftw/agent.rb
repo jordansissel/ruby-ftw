@@ -302,13 +302,22 @@ class FTW::Agent
   def execute(request)
     # TODO(sissel): Make redirection-following optional, but default.
 
-    connection, error = connect(request.headers["Host"], request.port,
-                                request.protocol == "https")
-    if !error.nil?
-      p :error => error
-      raise error
+    tries = 3
+    begin
+      connection, error = connect(request.headers["Host"], request.port,
+                                  request.protocol == "https")
+      if !error.nil?
+        p :error => error
+        raise error
+      end
+      response = request.execute(connection)
+    rescue EOFError => e
+      tries -= 1
+      @logger.warn("Error while sending request, will retry.",
+                   :tries_left => tries,
+                   :exception => e)
+      retry if tries > 0
     end
-    response = request.execute(connection)
 
     redirects = 0
     # Follow redirects
