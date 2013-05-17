@@ -134,12 +134,21 @@ module FTW::Protocol
     end
   end # def read_body
 
+  # A shorthand for discarding the body of a request or response.
+  #
+  # This is the same as:
+  #
+  #     foo.read_body { |c| }
+  def discard_body
+    read_body { |c| }
+  end # def discard_body
+
   # Read the length bytes from the body. Yield each chunk read to the block
   # given. This method is generally only called by http clients, not servers.
   def read_http_body_length(length, &block)
     remaining = length
     while remaining > 0
-      data = @body.read
+      data = @body.read(remaining)
       @logger.debug("Read bytes", :length => data.size)
       if data.size > remaining
         # Read too much data, only wanted part of this. Push the rest back.
@@ -165,6 +174,9 @@ module FTW::Protocol
     parser.on_message_complete = proc { done = true }
 
     while !done # will break on special conditions below
+      # TODO(sissel): In JRuby, this read will sometimes hang for ever
+      # because there's some wonkiness in IO.select on SSLSockets in JRuby.
+      # Maybe we should fix it... 
       data = @body.read
       offset = parser << data
       if offset != data.length
