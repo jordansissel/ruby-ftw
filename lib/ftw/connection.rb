@@ -232,7 +232,9 @@ class FTW::Connection
     if readable?(timeout)
       begin
         # Read at most 'length' data, so read less from the socket
-        @socket.sysread(@read_size - data.length, @read_buffer)
+        # We'll read less than 'length' if the pushback buffer has
+        # data in it already.
+        @socket.sysread(length - data.length, @read_buffer)
         data << @read_buffer
         return data
       rescue EOFError => e
