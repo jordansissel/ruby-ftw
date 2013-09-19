@@ -69,7 +69,7 @@ module FTW::Protocol
 
   # Encode the given text as in 'chunked' encoding.
   def encode_chunked(text)
-    return sprintf("%x%s%s%s", text.size, CRLF, text, CRLF)
+    return sprintf("%x%s%s%s", text.bytesize, CRLF, text, CRLF)
   end # def encode_chunked
 
   def write_http_body_chunked(body, io)
@@ -149,15 +149,15 @@ module FTW::Protocol
     remaining = length
     while remaining > 0
       data = @body.read(remaining)
-      @logger.debug("Read bytes", :length => data.size)
-      if data.size > remaining
+      @logger.debug("Read bytes", :length => data.bytesize)
+      if data.bytesize > remaining
         # Read too much data, only wanted part of this. Push the rest back.
         yield data[0..remaining]
         remaining = 0
         @body.pushback(data[remaining .. -1]) if remaining < 0
       else
         yield data
-        remaining -= data.size
+        remaining -= data.bytesize
       end
     end
   end # def read_http_body_length

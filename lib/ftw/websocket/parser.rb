@@ -86,7 +86,7 @@ class FTW::WebSocket::Parser
 
   # Do we have at least 'length' bytes in the buffer?
   def have?(length)
-    return length <= @buffer.size 
+    return length <= @buffer.bytesize 
   end # def have?
 
   # Get 'length' string from the buffer.
