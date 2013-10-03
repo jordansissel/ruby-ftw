@@ -139,6 +139,7 @@ class FTW::Connection
       @logger.debug("Connecting", :address => @remote_address,
                     :host => host, :port => port, :family => family)
       @socket = Socket.new(family, Socket::SOCK_STREAM, 0)
+      @socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
 
       # This api is terrible. pack_sockaddr_in? This isn't C, man...
       @logger.debug("packing", :data => [port.to_i, @remote_address])
