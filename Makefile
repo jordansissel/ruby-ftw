@@ -22,6 +22,9 @@ serve-coverage:
 wait-for-changes:
 	-inotifywait --exclude '\.swp' -e modify $$(find $(DIRS) -name '*.rb'; find $(DIRS) -type d)
 
+certs/cacert.pem:
+	wget -O certs/cacert.pem http://curl.haxx.se/ca/cacert.pem
+
 .PHONY: package
 package: | $(GEM)
 
