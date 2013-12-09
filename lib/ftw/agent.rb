@@ -63,14 +63,26 @@ class FTW::Agent
 
     configuration[REDIRECTION_LIMIT] = 20
 
+    need_ssl_ca_certs = true
+
     @certificate_store = OpenSSL::X509::Store.new
     if File.readable?(OpenSSL::X509::DEFAULT_CERT_FILE)
       @logger.debug("Adding default certificate file",
                     :path => OpenSSL::X509::DEFAULT_CERT_FILE)
-      @certificate_store.add_file(OpenSSL::X509::DEFAULT_CERT_FILE)
-    else
+      begin
+        @certificate_store.add_file(OpenSSL::X509::DEFAULT_CERT_FILE)
+        need_ssl_ca_certs = false
+      rescue OpenSSL::X509::StoreError => e
+        # Work around jruby#1055 "Duplicate extensions not allowed"
+        @logger.warn("Failure loading #{OpenSSL::X509::DEFAULT_CERT_FILE}. " \
+                     "Will try another cacert source.")
+      end
+    end
+
+    if need_ssl_ca_certs
       # Use some better defaults from http://curl.haxx.se/docs/caextract.html
-      @logger.info("Using upstream ssl certs, possibly untrusty.")
+      # Can we trust curl's CA list? Global ssl trust is a tragic joke, anyway :\
+      @logger.info("Using upstream ssl ca certs from curl. Possibly untrustworthy.")
       default_ca = File.join(File.dirname(__FILE__), "cacert.pem")
 
       # JRUBY-6870 - strip 'jar:' prefix if it is present.
