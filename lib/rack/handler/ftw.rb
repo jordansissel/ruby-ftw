@@ -127,6 +127,9 @@ class Rack::Handler::FTW
         # Connection EOF'd or errored before we finished reading a full HTTP
         # message, shut it down.
         break
+      rescue ArgumentError
+        # Invalid http request sent
+        break
       end
 
       begin
@@ -137,7 +140,8 @@ class Rack::Handler::FTW
         raise e
       end
     end
-    connection.disconnect("Fun")
+  ensure
+    connection.disconnect("Closing...")
   end # def handle_connection
 
   # Handle a request. This will set up the rack 'env' and invoke the
