@@ -208,11 +208,13 @@ class FTW::Agent
     m = name.upcase
 
     # 'def get' (put, post, etc)
+    public
     define_method(name.to_sym) do |uri, options={}|
       return request(m, uri, options)
     end
 
     # 'def get!' (put!, post!, etc)
+    public
     define_method("#{name}!".to_sym) do |uri, options={}|
       return execute(request(m, uri, options))
     end
