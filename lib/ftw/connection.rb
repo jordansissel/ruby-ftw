@@ -329,13 +329,26 @@ class FTW::Connection
     # If you use VERIFY_NONE, you are removing the trust feature of TLS. Don't do that.
     # Encryption without trust means you don't know who you are talking to.
     sslcontext.verify_mode = OpenSSL::SSL::VERIFY_PEER
+
+    # ruby-core is refusing to patch ruby's default openssl settings to be more
+    # secure, so let's fix that here. The next few lines setting options and
+    # ciphers come from jmhodges proposed patch
+    ssloptions = OpenSSL::SSL::OP_ALL
+    if defined?(OpenSSL::SSL::OP_DONT_INSERT_EMPTY_FRAGMENTS)
+      ssloptions &= ~OpenSSL::SSL::OP_DONT_INSERT_EMPTY_FRAGMENTS
+    end
+    if defined?(OpenSSL::SSL::OP_NO_COMPRESSION)
+      ssloptions |= OpenSSL::SSL::OP_NO_COMPRESSION
+    end
+    sslcontext.options = ssloptions
+    sslcontext.ciphers = "DEFAULT:!aNULL:!eNULL:!LOW:!EXPORT:!SSLv2"
+
     sslcontext.verify_callback = proc do |*args| 
       @logger.debug("Verify peer via FTW::Connection#secure", :callback => settings[:verify_callback])
       if settings[:verify_callback].respond_to?(:call)
         settings[:verify_callback].call(*args)
       end
     end
-    sslcontext.ssl_version = :TLSv1
     sslcontext.cert_store = options[:certificate_store]
     @socket = OpenSSL::SSL::SSLSocket.new(@socket, sslcontext)
 
