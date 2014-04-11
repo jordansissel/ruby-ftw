@@ -76,9 +76,16 @@ module FTW::Protocol
     if body.is_a?(String)
       io.write(encode_chunked(body))
     elsif body.respond_to?(:sysread)
-      true while io.write(encode_chunked(body.sysread(16384)))
+      begin
+        while cont = body.sysread(16384)
+          io.write(encode_chunked(cont))
+        end
+      rescue EOFError
+      end
     elsif body.respond_to?(:read)
-      true while io.write(encode_chunked(body.read(16384)))
+      while cont = body.read(16384)
+        io.write(encode_chunked(cont))
+      end
     elsif body.respond_to?(:each)
       body.each { |s| io.write(encode_chunked(s)) }
     end
@@ -91,7 +98,9 @@ module FTW::Protocol
     if body.is_a?(String)
       io.write(body)
     elsif body.respond_to?(:read)
-      true while io.write(body.read(16384))
+      while cont = body.read(16384)
+        io.write(cont)
+      end
     elsif body.respond_to?(:each)
       body.each { |s| io.write(s) }
     end
