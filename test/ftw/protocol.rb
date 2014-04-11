@@ -55,5 +55,25 @@ describe FTW::Protocol do
     assert_equal( output.string, "12\r\nSome example input\r\n0\r\n\r\n")
   end
 
+  class OneByteWriter < Struct.new(:io)
+
+    def write( str )
+      io.write(str[0..1])
+    end
+
+  end
+
+  test "writing partially" do
+    protocol = Object.new
+    protocol.extend FTW::Protocol
+
+    output = OneByteWriter.new( StringIO.new )
+    input  = OnlyRead.new( StringIO.new('Some example input') )
+
+    protocol.write_http_body(input, output, true)
+
+    output.io.rewind
+    assert_equal( output.io.string, "12\r\nSome example input\r\n0\r\n\r\n")
+  end
 
 end
