@@ -74,28 +74,44 @@ module FTW::Protocol
 
   def write_http_body_chunked(body, io)
     if body.is_a?(String)
-      io.write(encode_chunked(body))
+      write_all( io, encode_chunked(body))
     elsif body.respond_to?(:sysread)
-      true while io.write(encode_chunked(body.sysread(16384)))
+      begin
+        while cont = body.sysread(16384)
+          write_all( io, encode_chunked(cont))
+        end
+      rescue EOFError
+      end
     elsif body.respond_to?(:read)
-      true while io.write(encode_chunked(body.read(16384)))
+      while cont = body.read(16384)
+        write_all( io, encode_chunked(cont) )
+      end
     elsif body.respond_to?(:each)
-      body.each { |s| io.write(encode_chunked(s)) }
+      body.each { |s| write_all( io, encode_chunked(s)) }
     end
 
     # The terminating chunk is an empty one.
-    io.write(encode_chunked(""))
+    write_all(io, encode_chunked(""))
   end # def write_http_body_chunked
 
   def write_http_body_normal(body, io)
     if body.is_a?(String)
-      io.write(body)
+      write_all(io, body)
     elsif body.respond_to?(:read)
-      true while io.write(body.read(16384))
+      while cont = body.read(16384)
+        write_all(io, cont)
+      end
     elsif body.respond_to?(:each)
-      body.each { |s| io.write(s) }
+      body.each { |s| write_all( io, s) }
     end
   end # def write_http_body_normal
+
+  def write_all(io, string)
+    while string.bytesize > 0
+      w = io.write(string)
+      string = string[w..-1]
+    end
+  end # def write_all
 
   # Read the body of this message. The block is called with chunks of the
   # response as they are read in.
