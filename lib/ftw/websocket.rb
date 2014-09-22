@@ -102,8 +102,8 @@ class FTW::WebSocket
   def handshake_ok?(response)
     # See RFC6455 section 4.2.2
     return false unless response.status == 101 # "Switching Protocols"
-    return false unless response.headers.get("upgrade") == "websocket"
-    return false unless response.headers.get("connection") == "Upgrade"
+    return false unless response.headers.get("upgrade").downcase == "websocket"
+    return false unless response.headers.get("connection").downcase == "upgrade"
 
     # Now verify Sec-WebSocket-Accept. It should be the SHA-1 of the
     # Sec-WebSocket-Key (in base64) + WEBSOCKET_ACCEPT_UUID
