@@ -244,6 +244,8 @@ class FTW::Connection
         data << @read_buffer
         return data
       rescue EOFError => e
+        @socket.close
+        @connected = false
         raise e
       end
     else

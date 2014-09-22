@@ -40,6 +40,7 @@ class FTW::Pool
   #     end
   def fetch(identifier, &default_block)
     @lock.synchronize do
+      @pool[identifier].delete_if { |o| o.available? && !o.connected? }
       object = @pool[identifier].find { |o| o.available? }
       return object if !object.nil?
     end
