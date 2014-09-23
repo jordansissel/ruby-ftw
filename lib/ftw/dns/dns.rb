@@ -34,7 +34,7 @@ class FTW::DNS::DNS
     if address.length == 16
       # Unpack 16 bit chunks, convert to hex, join with ":"
       address.unpack("n8").collect { |p| p.to_s(16) } \
-        .join(":").sub(/(?:0:(?:0:)+)/, ":")
+        .join(":").sub(/(?:^|:)0:(?:0:)+/, "::")
     else 
       # assume ipv4
       # Per the following sites, "::127.0.0.1" is valid and correct
