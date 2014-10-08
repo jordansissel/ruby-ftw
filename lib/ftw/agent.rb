@@ -284,6 +284,7 @@ class FTW::Agent
   # The 'options' hash supports the following keys:
   # 
   # * :headers => { string => string, ... }. This allows you to set header values.
+  # * :read_timeout => { string => float, ... }. This allows you to set read timeout.
   def request(method, uri, options)
     @logger.info("Creating new request", :method => method, :uri => uri, :options => options)
     request = FTW::Request.new(uri)
@@ -298,6 +299,10 @@ class FTW::Agent
 
     if options.include?(:body)
       request.body = options[:body]
+    end
+
+    if options.include?(:read_timeout)
+      request.read_timeout = options[:read_timeout]
     end
 
     return request

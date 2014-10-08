@@ -16,7 +16,7 @@ module FTW::Protocol
   # position for the connection will be left at the end of the message headers.
   # 
   # The 'connection' object must respond to #read(timeout) and #pushback(string)
-  def read_http_message(connection)
+  def read_http_message(connection, timeout=nil)
     parser = HTTP::Parser.new
     headers_done = false
     parser.on_headers_complete = proc { headers_done = true; :stop }
@@ -27,7 +27,7 @@ module FTW::Protocol
       # TODO(sissel): This read could toss an exception of the server aborts
       # prior to sending the full headers. Figure out a way to make this happy.
       # Perhaps fabricating a 500 response?
-      data = connection.read(16384)
+      data = connection.read(16384, timeout)
 
       # Feed the data into the parser. Offset will be nonzero if there's 
       # extra data beyond the header.

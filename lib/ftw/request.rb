@@ -48,6 +48,9 @@ class FTW::Request
   # Usually 'http' or 'https' or perhaps 'spdy' maybe?
   attr_accessor :protocol
 
+  # This is *not* an RFC2616 field. Defines http read timeout, default nil.
+  attr_accessor :read_timeout
+
   # Make a new request with a uri if given.
   #
   # The uri is used to set the address, protocol, Host header, etc.
@@ -56,6 +59,7 @@ class FTW::Request
     @port = 80
     @protocol = "http"
     @version = 1.1
+    @read_timeout = nil
     use_uri(uri) if !uri.nil?
     @logger = Cabin::Channel.get
   end # def initialize
@@ -90,7 +94,7 @@ class FTW::Request
       end
     end
 
-    response = read_http_message(connection)
+    response = read_http_message(connection, @read_timeout)
     # TODO(sissel): make sure we got a response, not a request, cuz that'd be weird.
     return response
   end # def execute
@@ -150,6 +154,7 @@ class FTW::Request
   alias_method :start_line, :request_line
 
   public(:method, :method=, :request_uri, :request_uri=, :path, :port, :port=,
-         :protocol, :protocol=, :execute, :use_uri, :request_line, :start_line)
+         :protocol, :protocol=, :execute, :use_uri, :request_line, :start_line,
+         :read_timeout, :read_timeout=)
 
 end # class FTW::Request < Message
