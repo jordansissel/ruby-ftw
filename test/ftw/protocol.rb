@@ -76,4 +76,17 @@ describe FTW::Protocol do
     assert_equal( output.io.string, "12\r\nSome example input\r\n0\r\n\r\n")
   end
 
+  test "writing non ascii characters" do
+    protocol = Object.new
+    protocol.extend FTW::Protocol
+
+    output = StringIO.new
+    input  = "è".force_encoding(Encoding::UTF_8)
+
+    protocol.write_http_body(input, output, true)
+
+    output.rewind
+    assert_equal( output.string, "2\r\nè\r\n0\r\n\r\n")
+  end
+
 end
