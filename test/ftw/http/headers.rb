@@ -47,4 +47,13 @@ describe FTW::HTTP::Headers do
     @headers.remove("foo", "two")
     assert_equal("one", @headers.get("foo"))
   end
+
+  test "duplicate headers return multiple key value pairs" do
+    @headers.add("foo", "bar")
+    @headers.add("foo", "fizz")
+    @headers.each do |key, value|
+      assert_equal("foo", key)
+      assert( value == "bar" || value == "fizz")
+    end
+  end
 end # describe FTW::HTTP::Headers
