@@ -117,7 +117,7 @@ class FTW::HTTP::Headers
   def each(&block)
     @headers.each do |field_name, field_value|
       if field_value.is_a?(Array)
-        field_value.map { |value| yield field_name, v }
+        field_value.map { |value| yield field_name, value }
       else
         yield field_name, field_value
       end
