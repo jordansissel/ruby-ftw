@@ -2,6 +2,7 @@ GEM
   remote: http://rubygems.org/
   specs:
     addressable (2.2.6)
+    awesome_print (1.2.0)
     backports (2.6.2)
     cabin (0.4.4)
       json
@@ -42,6 +43,7 @@ PLATFORMS
 
 DEPENDENCIES
   addressable (= 2.2.6)
+  awesome_print
   backports (= 2.6.2)
   cabin (= 0.4.4)
   http_parser.rb (= 0.5.3)

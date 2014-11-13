@@ -40,6 +40,9 @@ class FTW::Connection
   # Secure setup timed out
   class SecureHandshakeTimeout < StandardError; end
 
+  # Invalid connection configuration
+  class InvalidConfiguration < StandardError; end
+
   private
 
   # A new network connection.
@@ -315,13 +318,20 @@ class FTW::Connection
   #
   # * :certificate_store, an OpenSSL::X509::Store
   # * :timeout, a timeout threshold in seconds.
+  # * :ciphers, an OpenSSL ciphers string, see `openssl ciphers` manual for details.
+  # * :version, any of: SSLv2, SSLv3, TLSv1, TLSv1.1, TLSv1.2
+  #
+  # Notes:
+  # * Version may depend on your platform (openssl compilation settings, JVM
+  #   version, export restrictions, etc) 
   def secure(options=nil)
     # Skip this if we're already secure.
     return if secured?
 
     defaults = {
       :timeout => nil,
-      #:certificate_store => OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE
+      :ciphers => FTW::Agent::Configuration::SSL_CIPHER_MAP["MOZILLA_MODERN"],
+      :version => "TLSv1.1"
     }
     settings = defaults.merge(options) unless options.nil?
 
@@ -334,7 +344,7 @@ class FTW::Connection
 
     # ruby-core is refusing to patch ruby's default openssl settings to be more
     # secure, so let's fix that here. The next few lines setting options and
-    # ciphers come from jmhodges proposed patch
+    # ciphers come from jmhodges' proposed patch
     ssloptions = OpenSSL::SSL::OP_ALL
     if defined?(OpenSSL::SSL::OP_DONT_INSERT_EMPTY_FRAGMENTS)
       ssloptions &= ~OpenSSL::SSL::OP_DONT_INSERT_EMPTY_FRAGMENTS
@@ -342,8 +352,15 @@ class FTW::Connection
     if defined?(OpenSSL::SSL::OP_NO_COMPRESSION)
       ssloptions |= OpenSSL::SSL::OP_NO_COMPRESSION
     end
+    # https://github.com/jruby/jruby/issues/1874
+    version = OpenSSL::SSL::SSLContext::METHODS.find { |x| x.to_s.gsub("_",".") == settings[:version] }
+    raise InvalidConfiguration, "Invalid SSL/TLS version '#{settings[:version]}'" if version.nil?
+    sslcontext.ssl_version = version
+
+    # We have to set ciphers *after* setting ssl_version because setting
+    # ssl_version will reset the cipher set.
     sslcontext.options = ssloptions
-    sslcontext.ciphers = "DEFAULT:!aNULL:!eNULL:!LOW:!EXPORT:!SSLv2"
+    sslcontext.ciphers = settings[:ciphers]
 
     sslcontext.verify_callback = proc do |*args| 
       @logger.debug("Verify peer via FTW::Connection#secure", :callback => settings[:verify_callback])
@@ -351,16 +368,17 @@ class FTW::Connection
         settings[:verify_callback].call(*args)
       end
     end
-    sslcontext.cert_store = options[:certificate_store]
+    sslcontext.cert_store = settings[:certificate_store]
+
     @socket = OpenSSL::SSL::SSLSocket.new(@socket, sslcontext)
 
     # TODO(sissel): Set up local certificat/key stuff. This is required for
     # server-side ssl operation, I think.
 
     if client?
-      do_secure(:connect_nonblock, options[:timeout])
+      do_secure(:connect_nonblock, settings[:timeout])
     else
-      do_secure(:accept_nonblock, options[:timeout])
+      do_secure(:accept_nonblock, settings[:timeout])
     end
   end # def secure
 

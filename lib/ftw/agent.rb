@@ -445,8 +445,9 @@ class FTW::Agent
           @logger.error("Error in certificate_verify call", :exception => e)
         end
       end
-      connection.secure(:certificate_store => certificate_store,
-                        :verify_callback => verify_callback)
+      ciphers = SSL_CIPHER_MAP[configuration[SSL_CIPHERS]] || configuration[SSL_CIPHERS]
+      connection.secure(:certificate_store => certificate_store, :verify_callback => verify_callback,
+                        :ciphers => ciphers, :version => configuration[SSL_VERSION])
     end # if secure
 
     return connection, nil

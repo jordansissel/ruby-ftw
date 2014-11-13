@@ -13,6 +13,7 @@ group :testing do
   gem "insist"
   gem "rspec"
   gem "stud"
+  gem "awesome_print"
 end
 
 group :examples do
