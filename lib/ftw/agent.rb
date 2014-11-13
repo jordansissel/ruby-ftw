@@ -63,44 +63,6 @@ class FTW::Agent
 
     configuration[REDIRECTION_LIMIT] = 20
 
-    need_ssl_ca_certs = true
-
-    @certificate_store = OpenSSL::X509::Store.new
-    if File.readable?(OpenSSL::X509::DEFAULT_CERT_FILE)
-      @logger.debug("Adding default certificate file",
-                    :path => OpenSSL::X509::DEFAULT_CERT_FILE)
-      begin
-        @certificate_store.add_file(OpenSSL::X509::DEFAULT_CERT_FILE)
-        need_ssl_ca_certs = false
-      rescue OpenSSL::X509::StoreError => e
-        # Work around jruby#1055 "Duplicate extensions not allowed"
-        @logger.warn("Failure loading #{OpenSSL::X509::DEFAULT_CERT_FILE}. " \
-                     "Will try another cacert source.")
-      end
-    end
-
-    if need_ssl_ca_certs
-      # Use some better defaults from http://curl.haxx.se/docs/caextract.html
-      # Can we trust curl's CA list? Global ssl trust is a tragic joke, anyway :\
-      @logger.info("Using upstream ssl ca certs from curl. Possibly untrustworthy.")
-      default_ca = File.join(File.dirname(__FILE__), "cacert.pem")
-
-      # JRUBY-6870 - strip 'jar:' prefix if it is present.
-      if default_ca =~ /^jar:file.*!/
-        default_ca.gsub!(/^jar:/, "")
-      end
-      @certificate_store.add_file(default_ca)
-    end
-
-    # Handle the local user/app trust store as well.
-    if File.directory?(configuration[SSL_TRUST_STORE])
-      # This is a directory, so use add_path
-      @logger.debug("Adding SSL_TRUST_STORE",
-                    :path => configuration[SSL_TRUST_STORE])
-      @certificate_store.add_path(configuration[SSL_TRUST_STORE])
-    end
-
-    # TODO(sissel): Add custom paths for ssl certs
   end # def initialize
 
   # Verify a certificate.
@@ -149,7 +111,7 @@ class FTW::Agent
           context.chain.each do |cert|
             # For each certificate, add it to the in-process certificate store.
             begin
-              @certificate_store.add_cert(cert)
+              certificate_store.add_cert(cert)
             rescue OpenSSL::X509::StoreError => e
               # If the cert is already trusted, move along.
               if e.to_s != "cert already in hash table" 
@@ -396,6 +358,55 @@ class FTW::Agent
     end
   end # def shutdown
 
+  def certificate_store
+    return @certificate_store if @certificate_store
+    @certificate_store = load_certificate_store
+  end
+
+  def load_certificate_store
+    return @certificate_store if @certificate_store_last == configuration[SSL_TRUST_STORE]
+
+    @certificate_store_last = configuration[SSL_TRUST_STORE]
+    need_ssl_ca_certs = true
+
+    @certificate_store = OpenSSL::X509::Store.new
+    if File.readable?(OpenSSL::X509::DEFAULT_CERT_FILE)
+      @logger.debug("Adding default certificate file",
+                    :path => OpenSSL::X509::DEFAULT_CERT_FILE)
+      begin
+        @certificate_store.add_file(OpenSSL::X509::DEFAULT_CERT_FILE)
+        need_ssl_ca_certs = false
+      rescue OpenSSL::X509::StoreError => e
+        # Work around jruby#1055 "Duplicate extensions not allowed"
+        @logger.warn("Failure loading #{OpenSSL::X509::DEFAULT_CERT_FILE}. " \
+                     "Will try another cacert source.")
+      end
+    end
+
+    if need_ssl_ca_certs
+      # Use some better defaults from http://curl.haxx.se/docs/caextract.html
+      # Can we trust curl's CA list? Global ssl trust is a tragic joke, anyway :\
+      @logger.info("Using upstream ssl ca certs from curl. Possibly untrustworthy.")
+      default_ca = File.join(File.dirname(__FILE__), "cacert.pem")
+
+      # JRUBY-6870 - strip 'jar:' prefix if it is present.
+      if default_ca =~ /^jar:file.*!/
+        default_ca.gsub!(/^jar:/, "")
+      end
+      @certificate_store.add_file(default_ca)
+    end
+
+    # Handle the local user/app trust store as well.
+    if File.directory?(configuration[SSL_TRUST_STORE])
+      # This is a directory, so use add_path
+      @logger.debug("Adding SSL_TRUST_STORE",
+                    :path => configuration[SSL_TRUST_STORE])
+      @certificate_store.add_path(configuration[SSL_TRUST_STORE])
+    end
+
+    return @certificate_store
+  end # def load_certificate_store
+
   # Returns a FTW::Connection connected to this host:port.
   def connect(host, port, secure=false)
     address = "#{host}:#{port}"
@@ -432,7 +443,7 @@ class FTW::Agent
           @logger.error("Error in certificate_verify call", :exception => e)
         end
       end
-      connection.secure(:certificate_store => @certificate_store,
+      connection.secure(:certificate_store => certificate_store,
                         :verify_callback => verify_callback)
     end # if secure
 
