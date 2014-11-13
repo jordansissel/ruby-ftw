@@ -18,11 +18,16 @@ describe "FTW Agent for client request" do
 
     #This test currently fail
     it "should not fail on SSL EOF error" do
-      url = "https://google.com/"
+      url = "https://www.google.com/"
+      puts 1
       response = agent.get!(url)
+      puts 2
       response.discard_body # Consume body to let this connection be reused
+      puts 3
       response = agent.get!(url) # Re-use connection
+      puts 4
       response.discard_body # Consume body to let this connection be reused
+      puts 5
     end
   end
 

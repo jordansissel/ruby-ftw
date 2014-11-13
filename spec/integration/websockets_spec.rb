@@ -3,7 +3,7 @@ require "rack/handler/ftw"
 require "stud/try"
 require "insist"
 
-describe "WebSockets" do
+describe "WebSockets", :websocket => false do
   let (:logger) { Cabin::Channel.get("rspec") }
   let (:app) { Fixtures::WebEcho.new }
   let (:port) { rand(20000) + 1000 }

@@ -215,6 +215,7 @@ class FTW::Connection
   # Returns the number of bytes written (See also IO#syswrite)
   def write(data, timeout=nil)
     #connect if !connected?
+    @logger.debug? && @logger.debug("Writing", :data => data, :timeout => timeout, :socket => @socket)
     if writable?(timeout)
       return @socket.syswrite(data)
     else
@@ -228,6 +229,7 @@ class FTW::Connection
   # This method is not guaranteed to read exactly 'length' bytes. See
   # IO#sysread
   def read(length=16384, timeout=nil)
+    @logger.debug("Read", :length => length, :timeout => timeout, :socket => @socket)
     data = ""
     data.force_encoding("BINARY") if data.respond_to?(:force_encoding)
     have_pushback = !@pushback_buffer.empty?
@@ -238,13 +240,17 @@ class FTW::Connection
       timeout = 0
     end
 
+    puts 1
     if readable?(timeout)
+      puts 2
       begin
         # Read at most 'length' data, so read less from the socket
         # We'll read less than 'length' if the pushback buffer has
         # data in it already.
-        @socket.sysread(length - data.length, @read_buffer)
+        bytes = @socket.sysread(length - data.bytesize, @read_buffer)
+        @logger.debug("Read complete", :bytes => bytes, :timeout => timeout, :socket => @socket)
         data << @read_buffer
+        #@logger.debug? && @logger.debug("Read", :data => data, :timeout => timeout, :socket => @socket)
         return data
       rescue EOFError => e
         @socket.close
@@ -253,11 +259,14 @@ class FTW::Connection
       end
     else
       if have_pushback
+        #n@logger.debug? && @logger.debug("Read pushback", :data => data, :timeout => timeout, :socket => @socket)
         return data
       else
         raise ReadTimeout.new
       end
     end
+  ensure
+    puts "DONE READ"
   end # def read
 
   # Push back some data onto the connection's read buffer.

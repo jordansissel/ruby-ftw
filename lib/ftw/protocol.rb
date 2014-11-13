@@ -36,7 +36,7 @@ module FTW::Protocol
 
     # If we consumed part of the body while parsing headers, put it back
     # onto the connection's read buffer so the next consumer can use it.
-    if offset < data.length
+    if offset < data.bytesize
       connection.pushback(data[offset .. -1])
     end
 
@@ -194,8 +194,9 @@ module FTW::Protocol
       # because there's some wonkiness in IO.select on SSLSockets in JRuby.
       # Maybe we should fix it... 
       data = @body.read
+      File.new("/tmp/x", "a").tap { |f| f.write(data); f.close }
       offset = parser << data
-      if offset != data.length
+      if offset != data.bytesize
         raise "Parser did not consume all data read?"
       end
     end

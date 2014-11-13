@@ -10,7 +10,7 @@ if ARGV.length != 1
 end
 
 logger = Cabin::Channel.get
-logger.level=:info
+logger.level=:debug
 logger.subscribe(STDOUT)
 
 agent = FTW::Agent.new
@@ -18,6 +18,7 @@ agent = FTW::Agent.new
 ARGV.each do |url|
   logger.time("Fetch #{url}") do
     response = agent.get!(url)
+    puts response
     bytes = 0
     response.read_body do |chunk|
       bytes += chunk.size
