@@ -14,6 +14,7 @@ group :testing do
   gem "rspec"
   gem "stud"
   gem "awesome_print"
+  gem "pry"
 end
 
 group :examples do
