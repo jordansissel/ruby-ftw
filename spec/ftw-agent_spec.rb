@@ -18,17 +18,11 @@ describe "FTW Agent for client request" do
 
     #This test currently fail
     it "should not fail on SSL EOF error" do
-      # TODO(sissel): MOZILLA_MODERN doesn't work against dreamobjects. (2014-11-13)
-      agent.configuration["ssl.version"] = "SSLv3"
-      agent.configuration["ssl.ciphers"] = "MOZILLA_INTERMEDIATE"
-      url = "https://logstash.objects.dreamhost.com/"
+      url = "https://google.com/"
       response = agent.get!(url)
-      # Consume body to let this connection be reused
-      response.read_body
-      # Re-use connection
-      response = agent.get!(url)
-      # Consume body to let this connection be reused
-      response.read_body
+      response.discard_body # Consume body to let this connection be reused
+      response = agent.get!(url) # Re-use connection
+      response.discard_body # Consume body to let this connection be reused
     end
   end
 
@@ -42,9 +36,6 @@ describe "FTW Agent for client request" do
       require "json"
       result = JSON.parse(payload)
       insist { result["beast_vuln"] } == false
-
-      require "ap"
-      ap result
       insist { result["rating"] } != "Bad"
     end
   end
