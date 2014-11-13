@@ -26,6 +26,7 @@ class FTW::Server
     addresses = [addresses] if !addresses.is_a?(Array)
     dns = FTW::DNS.singleton
 
+    @control_lock = Mutex.new
     @sockets = {}
 
     failures = []
@@ -78,14 +79,23 @@ class FTW::Server
       failures += local_failures
     end
 
+    # This allows us to interrupt the #each_connection's select() later
+    # when anyone calls stop()
+    @stopper = IO.pipe
+
     # Abort if there were failures
     raise ServerSetupFailure.new(failures) if failures.any?
   end # def initialize
 
   # Stop serving.
   def stop
-    @sockets.each do |name, socket|
-      socket.close
+    @stopper[1].syswrite(".")
+    @stopper[1].close()
+    @control_lock.synchronize do
+      @sockets.each do |name, socket|
+        socket.close
+      end
+      @sockets.clear
     end
   end # def stop
 
@@ -93,14 +103,17 @@ class FTW::Server
   def each_connection(&block)
     # TODO(sissel): Select on all sockets
     # TODO(sissel): Accept and yield to the block
+    stopper = @stopper[0]
     while true
-      sockets = @sockets.values
-      read, write, error = IO.select(sockets, nil, nil, nil)
-      read.each do |serversocket|
-        #p serversocket.methods.sort
-        socket, addrinfo = serversocket.accept
-        connection = FTW::Connection.from_io(socket)
-        yield connection
+      @control_lock.synchronize do
+        sockets = @sockets.values + [stopper]
+        read, write, error = IO.select(sockets, nil, nil, nil)
+        break if read.include?(stopper)
+        read.each do |serversocket|
+          socket, addrinfo = serversocket.accept
+          connection = FTW::Connection.from_io(socket)
+          yield connection
+        end
       end
     end
   end # def each_connection
