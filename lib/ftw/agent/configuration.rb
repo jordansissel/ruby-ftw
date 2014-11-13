@@ -9,6 +9,9 @@ module FTW::Agent::Configuration
   # SSL Trust Store
   SSL_TRUST_STORE = "ssl.trustdb".freeze
 
+  # SSL: Use the system's global default certs?
+  SSL_USE_DEFAULT_CERTS = "ssl.use-default-certs".freeze
+
   private
 
   # Get the configuration hash
@@ -22,7 +25,8 @@ module FTW::Agent::Configuration
     home = File.join(ENV.fetch("HOME", tmpdir), ".ftw")
     return {
       REDIRECTION_LIMIT => 20,
-      SSL_TRUST_STORE => File.join(home, "ssl-trust.db")
+      SSL_TRUST_STORE => File.join(home, "ssl-trust.db"),
+      SSL_USE_DEFAULT_CERTS => true,
     }
   end # def default_configuration
 

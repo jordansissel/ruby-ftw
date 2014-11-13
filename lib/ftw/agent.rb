@@ -370,31 +370,33 @@ class FTW::Agent
     need_ssl_ca_certs = true
 
     @certificate_store = OpenSSL::X509::Store.new
-    if File.readable?(OpenSSL::X509::DEFAULT_CERT_FILE)
-      @logger.debug("Adding default certificate file",
-                    :path => OpenSSL::X509::DEFAULT_CERT_FILE)
-      begin
-        @certificate_store.add_file(OpenSSL::X509::DEFAULT_CERT_FILE)
-        need_ssl_ca_certs = false
-      rescue OpenSSL::X509::StoreError => e
-        # Work around jruby#1055 "Duplicate extensions not allowed"
-        @logger.warn("Failure loading #{OpenSSL::X509::DEFAULT_CERT_FILE}. " \
-                     "Will try another cacert source.")
+    if configuration[SSL_USE_DEFAULT_CERTS]
+      if File.readable?(OpenSSL::X509::DEFAULT_CERT_FILE)
+        @logger.debug("Adding default certificate file",
+                      :path => OpenSSL::X509::DEFAULT_CERT_FILE)
+        begin
+          @certificate_store.add_file(OpenSSL::X509::DEFAULT_CERT_FILE)
+          need_ssl_ca_certs = false
+        rescue OpenSSL::X509::StoreError => e
+          # Work around jruby#1055 "Duplicate extensions not allowed"
+          @logger.warn("Failure loading #{OpenSSL::X509::DEFAULT_CERT_FILE}. " \
+                       "Will try another cacert source.")
+        end
       end
-    end
 
-    if need_ssl_ca_certs
-      # Use some better defaults from http://curl.haxx.se/docs/caextract.html
-      # Can we trust curl's CA list? Global ssl trust is a tragic joke, anyway :\
-      @logger.info("Using upstream ssl ca certs from curl. Possibly untrustworthy.")
-      default_ca = File.join(File.dirname(__FILE__), "cacert.pem")
+      if need_ssl_ca_certs
+        # Use some better defaults from http://curl.haxx.se/docs/caextract.html
+        # Can we trust curl's CA list? Global ssl trust is a tragic joke, anyway :\
+        @logger.info("Using upstream ssl ca certs from curl. Possibly untrustworthy.")
+        default_ca = File.join(File.dirname(__FILE__), "cacert.pem")
 
-      # JRUBY-6870 - strip 'jar:' prefix if it is present.
-      if default_ca =~ /^jar:file.*!/
-        default_ca.gsub!(/^jar:/, "")
+        # JRUBY-6870 - strip 'jar:' prefix if it is present.
+        if default_ca =~ /^jar:file.*!/
+          default_ca.gsub!(/^jar:/, "")
+        end
+        @certificate_store.add_file(default_ca)
       end
-      @certificate_store.add_file(default_ca)
-    end
+    end # SSL_USE_DEFAULT_CERTS
 
     # Handle the local user/app trust store as well.
     if File.directory?(configuration[SSL_TRUST_STORE])
