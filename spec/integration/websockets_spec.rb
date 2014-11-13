@@ -6,18 +6,15 @@ require "insist"
 describe "WebSockets" do
   let (:logger) { Cabin::Channel.get("rspec") }
   let (:app) { Fixtures::WebEcho.new }
+  let (:port) { rand(20000) + 1000 }
 
   let (:rack) do
     # Listen on a random port
-    Stud.try(10.times) do
-      @port = rand(20000) + 1000
-      Rack::Handler::FTW.new(app, :Host => "127.0.0.1", :Port => @port)
-    end
+    Rack::Handler::FTW.new(app, :Host => "127.0.0.1", :Port => port)
   end # let rack
 
   let (:address) do
-    rack # make the 'rack' bit go
-    "localhost:#{@port}"
+    "127.0.0.1:#{port}"
   end # let address
 
   before :all do
@@ -26,7 +23,6 @@ describe "WebSockets" do
   end
 
   before :each do
-    rack
     Thread.new { rack.run }
   end
 
@@ -44,7 +40,6 @@ describe "WebSockets" do
     subject do
       ws = nil
       Stud::try(5.times) do
-        puts address
         ws = agent.websocket!("http://#{address}/websocket")
         insist { ws }.is_a?(FTW::WebSocket)
       end
