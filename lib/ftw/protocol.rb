@@ -109,7 +109,7 @@ module FTW::Protocol
   def write_all(io, string)
     while string.bytesize > 0
       w = io.write(string)
-      string = string[w..-1]
+      string = string.byteslice(w..-1)
     end
   end # def write_all
 
