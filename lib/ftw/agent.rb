@@ -447,7 +447,7 @@ class FTW::Agent
       end
       ciphers = SSL_CIPHER_MAP[configuration[SSL_CIPHERS]] || configuration[SSL_CIPHERS]
       connection.secure(:certificate_store => certificate_store, :verify_callback => verify_callback,
-                        :ciphers => ciphers, :version => configuration[SSL_VERSION])
+                        :ciphers => ciphers, :ssl_version => configuration[SSL_VERSION])
     end # if secure
 
     return connection, nil

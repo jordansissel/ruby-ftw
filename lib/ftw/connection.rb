@@ -321,11 +321,18 @@ class FTW::Connection
   # * :certificate_store, an OpenSSL::X509::Store
   # * :timeout, a timeout threshold in seconds.
   # * :ciphers, an OpenSSL ciphers string, see `openssl ciphers` manual for details.
-  # * :version, any of: SSLv2, SSLv3, TLSv1, TLSv1.1, TLSv1.2
+  # * :ssl_version, any of: SSLv2, SSLv3, TLSv1, TLSv1.1, TLSv1.2
+  # * :certificate, an OpenSSL::X509::Certificate
+  # * :key, an OpenSSL::PKey (like OpenSSL::PKey::RSA)
+  #
+  # Both `certificate` and `key` are highly recommended if the connection
+  # belongs to a server (not a client connection).
   #
   # Notes:
   # * Version may depend on your platform (openssl compilation settings, JVM
   #   version, export restrictions, etc) 
+#   * Available ciphers will depend on your version of Ruby (or JRuby and JVM),
+  #   OpenSSL, etc.
   def secure(options=nil)
     # Skip this if we're already secure.
     return if secured?
@@ -333,7 +340,7 @@ class FTW::Connection
     defaults = {
       :timeout => nil,
       :ciphers => FTW::Agent::Configuration::SSL_CIPHER_MAP["MOZILLA_MODERN"],
-      :version => "TLSv1.1"
+      :ssl_version => "TLSv1.1"
     }
     settings = defaults.merge(options) unless options.nil?
 
@@ -355,8 +362,8 @@ class FTW::Connection
       ssloptions |= OpenSSL::SSL::OP_NO_COMPRESSION
     end
     # https://github.com/jruby/jruby/issues/1874
-    version = OpenSSL::SSL::SSLContext::METHODS.find { |x| x.to_s.gsub("_",".") == settings[:version] }
-    raise InvalidConfiguration, "Invalid SSL/TLS version '#{settings[:version]}'" if version.nil?
+    version = OpenSSL::SSL::SSLContext::METHODS.find { |x| x.to_s.gsub("_",".") == settings[:ssl_version] }
+    raise InvalidConfiguration, "Invalid SSL/TLS version '#{settings[:ssl_version]}'" if version.nil?
     sslcontext.ssl_version = version
 
     # We have to set ciphers *after* setting ssl_version because setting
@@ -371,6 +378,11 @@ class FTW::Connection
       end
     end
     sslcontext.cert_store = settings[:certificate_store]
+
+    if settings.include?(:certificate) && settings.include?(:key)
+      sslcontext.cert = settings[:certificate]
+      sslcontext.key = settings[:key]
+    end
 
     @socket = OpenSSL::SSL::SSLSocket.new(@socket, sslcontext)
 
