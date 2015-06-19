@@ -2,6 +2,7 @@ require "cabin" # rubygem "cabin"
 require "ftw/dns"
 require "ftw/poolable"
 require "ftw/namespace"
+require "ftw/agent"
 require "socket"
 require "timeout" # ruby stdlib, just for the Timeout exception.
 
