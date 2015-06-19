@@ -14,6 +14,7 @@ logger.level=:info
 logger.subscribe(STDOUT)
 
 agent = FTW::Agent.new
+agent.configuration[FTW::Agent::SSL_VERSION] = "TLSv1.1"
 
 ARGV.each do |url|
   logger.time("Fetch #{url}") do
