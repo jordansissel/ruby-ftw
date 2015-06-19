@@ -1,4 +1,6 @@
 require "ftw/namespace"
+require "ftw/dns"
+require "ftw/connection"
 
 # A web server.
 class FTW::Server
