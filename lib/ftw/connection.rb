@@ -324,6 +324,7 @@ class FTW::Connection
   # * :ssl_version, any of: SSLv2, SSLv3, TLSv1, TLSv1.1, TLSv1.2
   # * :certificate, an OpenSSL::X509::Certificate
   # * :key, an OpenSSL::PKey (like OpenSSL::PKey::RSA)
+  # * :ssl_verify, boolean to disable SSL certificate validation
   #
   # Both `certificate` and `key` are highly recommended if the connection
   # belongs to a server (not a client connection).
@@ -340,7 +341,8 @@ class FTW::Connection
     defaults = {
       :timeout => nil,
       :ciphers => FTW::Agent::Configuration::SSL_CIPHER_MAP["MOZILLA_MODERN"],
-      :ssl_version => "TLSv1.1"
+      :ssl_version => "TLSv1.1",
+      :ssl_verify => true
     }
     settings = defaults.merge(options) unless options.nil?
 
@@ -349,7 +351,11 @@ class FTW::Connection
     sslcontext = OpenSSL::SSL::SSLContext.new
     # If you use VERIFY_NONE, you are removing the trust feature of TLS. Don't do that.
     # Encryption without trust means you don't know who you are talking to.
-    sslcontext.verify_mode = OpenSSL::SSL::VERIFY_PEER
+    if settings[:ssl_verify]
+      sslcontext.verify_mode = OpenSSL::SSL::VERIFY_PEER
+    else
+      sslcontext.verify_mode = OpenSSL::SSL::VERIFY_NONE
+    end
 
     # ruby-core is refusing to patch ruby's default openssl settings to be more
     # secure, so let's fix that here. The next few lines setting options and
