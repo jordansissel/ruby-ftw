@@ -370,6 +370,9 @@ class FTW::Agent
     need_ssl_ca_certs = true
 
     @certificate_store = OpenSSL::X509::Store.new
+    # Load in the operating systems default certs
+    @certificate_store.set_default_paths
+    
     if configuration[SSL_USE_DEFAULT_CERTS]
       if File.readable?(OpenSSL::X509::DEFAULT_CERT_FILE)
         @logger.debug("Adding default certificate file",
