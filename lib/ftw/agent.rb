@@ -74,10 +74,15 @@ class FTW::Agent
   def certificate_verify(host, port, verified, context)
     # Now verify the entire chain.
     begin
-      @logger.debug("Verify peer via OpenSSL::X509::Store",
-                    :verified => verified, :chain => context.chain.collect { |c| c.subject },
-                    :context => context, :depth => context.error_depth,
-                    :error => context.error, :string => context.error_string)
+      if @logger.debug?
+        # Check if debugging is enabled to avoid the following annoying message
+        # to STDERR by jruby-openssl on every invocation.
+        #     WARNING: unimplemented method called: StoreContext#error_depth
+        @logger.debug("Verify peer via OpenSSL::X509::Store",
+                      :verified => verified, :chain => context.chain.collect { |c| c.subject },
+                      :context => context, :depth => context.error_depth,
+                      :error => context.error, :string => context.error_string)
+      end
       # Untrusted certificate; prompt to accept if possible.
       if !verified and STDOUT.tty?
         # TODO(sissel): Factor this out into a verify callback where this
