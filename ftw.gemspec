@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency("cabin", ">0") # for logging, latest is fine for now
   spec.add_dependency("http_parser.rb", "~> 0.6") # for http request/response parsing
-  spec.add_dependency("addressable", "~> 2.2.0")  # because stdlib URI is terrible
+  spec.add_dependency("addressable", "~> 2.3.8")  # because stdlib URI is terrible
   spec.add_dependency("backports", ">= 2.6.2") # for hacking stuff into ruby <1.9
   spec.add_development_dependency("minitest", ">0") # for unit tests, latest of this is fine
 
