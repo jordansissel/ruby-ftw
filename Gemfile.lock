@@ -1,76 +1,76 @@
 GEM
   remote: http://rubygems.org/
   specs:
-    addressable (2.2.6)
-    awesome_print (1.2.0)
+    addressable (2.3.8)
+    awesome_print (1.8.0)
     backports (2.6.2)
     cabin (0.4.4)
       json
-    coderay (1.1.1)
-    diff-lcs (1.1.3)
-    ffi (1.9.14-java)
+    coderay (1.1.2)
+    diff-lcs (1.3)
+    docile (1.1.5)
+    ffi (1.9.21-java)
     http_parser.rb (0.6.0)
     http_parser.rb (0.6.0-java)
-    insist (0.0.6)
-    json (1.6.6)
-    json (1.6.6-java)
-    method_source (0.8.2)
-    minitest (3.4.0)
-    multi_json (1.3.6)
-    pry (0.10.4)
+    insist (1.0.0)
+    json (2.1.0)
+    json (2.1.0-java)
+    method_source (0.9.0)
+    minitest (5.11.3)
+    mustermann (1.0.1)
+    pry (0.11.3)
       coderay (~> 1.1.0)
-      method_source (~> 0.8.1)
-      slop (~> 3.4)
-    pry (0.10.4-java)
+      method_source (~> 0.9.0)
+    pry (0.11.3-java)
       coderay (~> 1.1.0)
-      method_source (~> 0.8.1)
-      slop (~> 3.4)
+      method_source (~> 0.9.0)
       spoon (~> 0.0)
-    rack (1.4.1)
-    rack-protection (1.2.0)
+    rack (2.0.4)
+    rack-protection (2.0.0)
       rack
-    rspec (2.11.0)
-      rspec-core (~> 2.11.0)
-      rspec-expectations (~> 2.11.0)
-      rspec-mocks (~> 2.11.0)
-    rspec-core (2.11.1)
-    rspec-expectations (2.11.3)
-      diff-lcs (~> 1.1.3)
-    rspec-mocks (2.11.2)
-    simplecov (0.6.4)
-      multi_json (~> 1.0)
-      simplecov-html (~> 0.5.3)
-    simplecov-html (0.5.3)
-    sinatra (1.3.3)
-      rack (~> 1.3, >= 1.3.6)
-      rack-protection (~> 1.2)
-      tilt (~> 1.3, >= 1.3.3)
-    slop (3.6.0)
-    spoon (0.0.4)
+    rspec (2.99.0)
+      rspec-core (~> 2.99.0)
+      rspec-expectations (~> 2.99.0)
+      rspec-mocks (~> 2.99.0)
+    rspec-core (2.99.2)
+    rspec-expectations (2.99.2)
+      diff-lcs (>= 1.1.3, < 2.0)
+    rspec-mocks (2.99.4)
+    simplecov (0.15.1)
+      docile (~> 1.1.0)
+      json (>= 1.8, < 3)
+      simplecov-html (~> 0.10.0)
+    simplecov-html (0.10.2)
+    sinatra (2.0.0)
+      mustermann (~> 1.0)
+      rack (~> 2.0)
+      rack-protection (= 2.0.0)
+      tilt (~> 2.0)
+    spoon (0.0.6)
       ffi
-    stud (0.0.5)
-    tilt (1.3.3)
-    yard (0.8.2.1)
+    stud (0.0.23)
+    tilt (2.0.8)
+    yard (0.9.12)
 
 PLATFORMS
   java
   ruby
 
 DEPENDENCIES
-  addressable (= 2.2.6)
+  addressable (~> 2.3.8)
   awesome_print
   backports (= 2.6.2)
   cabin (= 0.4.4)
   http_parser.rb (~> 0.6)
   insist
-  json (= 1.6.6)
+  json
   minitest
   pry
-  rspec
+  rspec (~> 2)
   simplecov
   sinatra
   stud
   yard
 
 BUNDLED WITH
-   1.11.2
+   1.15.4

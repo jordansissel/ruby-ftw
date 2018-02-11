@@ -1,6 +1,6 @@
 source :rubygems
 
-gem "json", "1.6.6" # for json
+gem "json" # for json
 gem "cabin", "0.4.4" # for logging
 gem "http_parser.rb", "~> 0.6" # for http request/response parsing
 gem "addressable", "~> 2.3.8"  # because stdlib URI is terrible
@@ -11,7 +11,7 @@ group :testing do
   gem "simplecov"
   gem "yard"
   gem "insist"
-  gem "rspec"
+  gem "rspec", "~>2"
   gem "stud"
   gem "awesome_print"
   gem "pry"
