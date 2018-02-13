@@ -106,7 +106,7 @@ class FTW::Server
     # TODO(sissel): Select on all sockets
     # TODO(sissel): Accept and yield to the block
     stopper = @stopper[0]
-    while true
+    while !@sockets.empty?
       @control_lock.synchronize do
         sockets = @sockets.values + [stopper]
         read, write, error = IO.select(sockets, nil, nil, nil)
