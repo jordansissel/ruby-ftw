@@ -14,8 +14,8 @@ describe "FTW Webserver" do
       webserver.stop
 
       webserver_thread.join(10) || begin
-        fail("Webserver#run failed to return after 10s")
         webserver_thread.kill
+        fail("Webserver#run failed to return after 10s")
       end
     end
   end
