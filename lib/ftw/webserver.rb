@@ -49,6 +49,8 @@ class FTW::WebServer
         # Connection EOF'd or errored before we finished reading a full HTTP
         # message, shut it down.
         break
+      rescue FTW::HTTP::Message::UnsupportedHTTPVersion
+        break
       end
 
       if request["Content-Length"] || request["Transfer-Encoding"]

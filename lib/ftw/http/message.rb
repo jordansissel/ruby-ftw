@@ -21,6 +21,9 @@ module FTW::HTTP::Message
   # HTTP Versions that are valid.
   VALID_VERSIONS = [1.0, 1.1]
 
+  # For backward-compatibility, this exception inherits from ArgumentError
+  UnsupportedHTTPVersion = Class.new(ArgumentError)
+
   private
 
   # A new HTTP message.
@@ -101,7 +104,7 @@ module FTW::HTTP::Message
     ver = ver.to_f if !ver.is_a?(Float)
 
     if !VALID_VERSIONS.include?(ver)
-      raise ArgumentError.new("#{self.class.name}#version = #{ver.inspect} is" \
+      raise UnsupportedHTTPVersion.new("#{self.class.name}#version = #{ver.inspect} is" \
         "invalid. It must be a number, one of #{VALID_VERSIONS.join(", ")}")
     end
     @version = ver
