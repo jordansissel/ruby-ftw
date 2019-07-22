@@ -1,7 +1,8 @@
 GEM
   remote: http://rubygems.org/
   specs:
-    addressable (2.3.8)
+    addressable (2.6.0)
+      public_suffix (>= 2.0.2, < 4.0)
     awesome_print (1.8.0)
     backports (2.6.2)
     cabin (0.4.4)
@@ -25,6 +26,7 @@ GEM
       coderay (~> 1.1.0)
       method_source (~> 0.9.0)
       spoon (~> 0.0)
+    public_suffix (3.1.1)
     rack (2.0.4)
     rack-protection (2.0.0)
       rack
@@ -57,7 +59,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  addressable (~> 2.3.8)
+  addressable (>= 2.4)
   awesome_print
   backports (= 2.6.2)
   cabin (= 0.4.4)
@@ -73,4 +75,4 @@ DEPENDENCIES
   yard
 
 BUNDLED WITH
-   1.15.4
+   2.0.2
