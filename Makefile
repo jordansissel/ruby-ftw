@@ -1,5 +1,5 @@
 GEMSPEC=$(shell ls *.gemspec)
-VERSION=$(shell ruby -rubygems -e 'puts Gem::Specification.load("ftw.gemspec").version')
+VERSION=$(shell ruby -rrubygems -e 'puts Gem::Specification.load("ftw.gemspec").version')
 NAME=$(shell awk -F\" '/spec.name/ { print $$2 }' $(GEMSPEC))
 GEM=$(NAME)-$(VERSION).gem
 
