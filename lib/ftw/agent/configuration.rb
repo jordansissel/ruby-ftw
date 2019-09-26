@@ -26,6 +26,8 @@ module FTW::Agent::Configuration
 
   SSL_VERSION = "ssl.version"
 
+  SSL_VERIFY = "ssl.verify"
+
   private
 
   # Get the configuration hash
@@ -43,6 +45,7 @@ module FTW::Agent::Configuration
       SSL_USE_DEFAULT_CERTS => true,
       SSL_CIPHERS => SSL_CIPHER_DEFAULT,
       SSL_VERSION => "TLSv1.1",
+      SSL_VERIFY => true
     }
   end # def default_configuration
 
