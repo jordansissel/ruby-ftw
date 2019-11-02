@@ -52,7 +52,7 @@ GEM
       ffi
     stud (0.0.23)
     tilt (2.0.8)
-    yard (0.9.12)
+    yard (0.9.20)
 
 PLATFORMS
   java
